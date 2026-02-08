@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YourGP Care Plan Generator</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>YourGP Care Plan Generator</h1>
+            <p class="subtitle">Medicare-compliant GPCCMP (Item 965) generation tool</p>
+        </header>
+
+        <main>
+            <section class="input-section">
+                <h2>De-identified Health Summary</h2>
+                <p class="instructions">
+                    Paste the de-identified patient health summary below.
+                    <strong>Ensure all identifying information has been removed</strong> (name, DOB, Medicare number, address).
+                </p>
+                <textarea
+                    id="healthSummary"
+                    placeholder="Paste de-identified health summary here...
+
+Example content:
+- Medical history: Type 2 diabetes (diagnosed 2018), hypertension, obesity
+- Current medications: Metformin 1000mg BD, Perindopril 5mg daily
+- Recent results: HbA1c 8.2%, eGFR 62, BP 145/92
+- Allergies: Nil known
+- Smoking: Ex-smoker (quit 2020)
+- Social: Lives alone, retired, limited mobility"
+                    rows="12"
+                ></textarea>
+
+                <button id="generateBtn" onclick="generateCarePlan()">
+                    <span class="btn-text">Generate Care Plan</span>
+                    <span class="btn-loading" style="display: none;">Generating...</span>
+                </button>
+            </section>
+
+            <section class="output-section" id="outputSection" style="display: none;">
+                <div class="output-header">
+                    <h2>Generated Care Plan</h2>
+                    <div class="detected-conditions" id="detectedConditions"></div>
+                </div>
+
+                <div class="output-actions">
+                    <button onclick="copyToClipboard()" class="copy-btn">
+                        Copy to Clipboard
+                    </button>
+                    <span id="copyFeedback" class="copy-feedback"></span>
+                </div>
+
+                <pre id="carePlanOutput" class="care-plan-output"></pre>
+            </section>
+
+            <section class="error-section" id="errorSection" style="display: none;">
+                <h2>Error</h2>
+                <p id="errorMessage"></p>
+            </section>
+        </main>
+
+        <footer>
+            <p>
+                <strong>Important:</strong> This tool assists with care plan documentation.
+                All care plans must be reviewed and approved by the treating GP before use.
+            </p>
+            <p class="version">v1.0 | Medicare Item 965 Compliant | RACGP Guidelines 2024-2025</p>
+        </footer>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
