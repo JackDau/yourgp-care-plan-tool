@@ -5,24 +5,315 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>YourGP Care Plan Generator</title>
     <link rel="stylesheet" href="styles.css">
+    <style>
+        .header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 24px;
+        }
+
+        .version-badge {
+            background: #f0f4ff;
+            color: #667eea;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .nav-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+            border-bottom: 2px solid #e5e7eb;
+            padding-bottom: 0;
+        }
+
+        .nav-tab {
+            padding: 12px 24px;
+            border: none;
+            background: none;
+            font-size: 15px;
+            font-weight: 500;
+            color: #6b7280;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+            transition: all 0.2s;
+        }
+
+        .nav-tab:hover {
+            color: #667eea;
+        }
+
+        .nav-tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .dashboard-link {
+            display: inline-block;
+            margin-bottom: 16px;
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .dashboard-link:hover {
+            text-decoration: underline;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 500;
+            color: #374151;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 15px;
+            transition: border-color 0.2s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .questions-preview {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .questions-preview h3 {
+            margin-bottom: 16px;
+            color: #1f2937;
+        }
+
+        .question-section {
+            margin-bottom: 16px;
+        }
+
+        .question-section h4 {
+            color: #667eea;
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+
+        .question-section ul {
+            margin: 0;
+            padding-left: 20px;
+            color: #4b5563;
+        }
+
+        .question-section li {
+            margin-bottom: 4px;
+        }
+
+        .email-section {
+            background: #f0fdf4;
+            border: 1px solid #86efac;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .email-section h3 {
+            color: #166534;
+            margin-bottom: 12px;
+        }
+
+        .btn-row {
+            display: flex;
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .btn-secondary {
+            background: #f3f4f6;
+            color: #374151;
+            border: 1px solid #e5e7eb;
+        }
+
+        .btn-secondary:hover {
+            background: #e5e7eb;
+        }
+
+        .btn-success {
+            background: #10b981;
+        }
+
+        .btn-success:hover {
+            background: #059669;
+        }
+
+        .step-indicator {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+            padding: 12px 16px;
+            background: #f0f4ff;
+            border-radius: 8px;
+        }
+
+        .step-number {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: #667eea;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .step-text {
+            color: #4b5563;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        @media (max-width: 600px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .header-row {
+                flex-direction: column;
+                gap: 12px;
+            }
+        }
+    </style>
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>YourGP Care Plan Generator</h1>
-            <p class="subtitle">Medicare-compliant GPCCMP (Item 965) generation tool</p>
+            <div class="header-row">
+                <div>
+                    <h1>YourGP Care Plan Generator</h1>
+                    <p class="subtitle">Medicare-compliant GPCCMP (Item 965) generation tool</p>
+                </div>
+                <span class="version-badge">v2.0</span>
+            </div>
+            <a href="dashboard.html" class="dashboard-link">View Dashboard &rarr;</a>
         </header>
 
+        <nav class="nav-tabs">
+            <button class="nav-tab active" onclick="showTab('smart')">
+                SMART Goals Workflow
+            </button>
+            <button class="nav-tab" onclick="showTab('direct')">
+                Direct Care Plan
+            </button>
+        </nav>
+
         <main>
-            <section class="input-section">
-                <h2>De-identified Health Summary</h2>
-                <p class="instructions">
-                    Paste the de-identified patient health summary below.
-                    <strong>Ensure all identifying information has been removed</strong> (name, DOB, Medicare number, address).
-                </p>
-                <textarea
-                    id="healthSummary"
-                    placeholder="Paste de-identified health summary here...
+            <!-- SMART Goals Tab -->
+            <div id="smartTab" class="tab-content active">
+                <div class="step-indicator">
+                    <span class="step-number">1</span>
+                    <span class="step-text">Generate SMART goal questions for the patient, then send via email</span>
+                </div>
+
+                <section class="input-section">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="patientId">Patient ID (from Best Practice)</label>
+                            <input type="text" id="patientId" placeholder="e.g., 12345">
+                        </div>
+                        <div class="form-group">
+                            <label for="patientEmail">Patient Email</label>
+                            <input type="email" id="patientEmail" placeholder="patient@email.com">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="smartHealthSummary">De-identified Health Summary</label>
+                        <textarea
+                            id="smartHealthSummary"
+                            placeholder="Paste de-identified health summary here...
+
+Example:
+- Medical history: Type 2 diabetes, COPD, osteoarthritis
+- Current medications: Metformin 1000mg BD, Seretide 250/50 BD
+- Recent results: HbA1c 7.8%, FEV1 65%
+- Smoking: Ex-smoker (quit 2020)"
+                            rows="8"
+                        ></textarea>
+                    </div>
+
+                    <button id="generateQuestionsBtn" onclick="generateQuestions()">
+                        <span class="btn-text">Generate SMART Goal Questions</span>
+                        <span class="btn-loading" style="display: none;">Generating...</span>
+                    </button>
+                </section>
+
+                <!-- Questions Preview Section -->
+                <section id="questionsPreview" class="questions-preview hidden">
+                    <h3>Generated Questions for Patient</h3>
+                    <p style="color: #6b7280; margin-bottom: 16px;">Review these questions before sending to the patient.</p>
+                    <div id="questionsContent"></div>
+                </section>
+
+                <!-- Email Section -->
+                <section id="emailSection" class="email-section hidden">
+                    <h3>Send to Patient</h3>
+                    <p style="margin-bottom: 12px;">Click below to open your email with the patient link pre-filled.</p>
+                    <div class="btn-row">
+                        <button onclick="sendToPatient()" class="btn-success">
+                            Open Email to Send
+                        </button>
+                        <button onclick="copyFormLink()" class="btn-secondary">
+                            Copy Form Link
+                        </button>
+                    </div>
+                    <p id="formLinkDisplay" style="margin-top: 12px; font-size: 13px; color: #6b7280;"></p>
+                </section>
+            </div>
+
+            <!-- Direct Care Plan Tab -->
+            <div id="directTab" class="tab-content">
+                <section class="input-section">
+                    <h2>De-identified Health Summary</h2>
+                    <p class="instructions">
+                        Paste the de-identified patient health summary below.
+                        <strong>Ensure all identifying information has been removed</strong> (name, DOB, Medicare number, address).
+                    </p>
+                    <textarea
+                        id="healthSummary"
+                        placeholder="Paste de-identified health summary here...
 
 Example content:
 - Medical history: Type 2 diabetes (diagnosed 2018), hypertension, obesity
@@ -31,35 +322,36 @@ Example content:
 - Allergies: Nil known
 - Smoking: Ex-smoker (quit 2020)
 - Social: Lives alone, retired, limited mobility"
-                    rows="12"
-                ></textarea>
+                        rows="12"
+                    ></textarea>
 
-                <button id="generateBtn" onclick="generateCarePlan()">
-                    <span class="btn-text">Generate Care Plan</span>
-                    <span class="btn-loading" style="display: none;">Generating...</span>
-                </button>
-            </section>
-
-            <section class="output-section" id="outputSection" style="display: none;">
-                <div class="output-header">
-                    <h2>Generated Care Plan</h2>
-                    <div class="detected-conditions" id="detectedConditions"></div>
-                </div>
-
-                <div class="output-actions">
-                    <button onclick="copyToClipboard()" class="copy-btn">
-                        Copy to Clipboard
+                    <button id="generateBtn" onclick="generateCarePlan()">
+                        <span class="btn-text">Generate Care Plan</span>
+                        <span class="btn-loading" style="display: none;">Generating...</span>
                     </button>
-                    <span id="copyFeedback" class="copy-feedback"></span>
-                </div>
+                </section>
 
-                <pre id="carePlanOutput" class="care-plan-output"></pre>
-            </section>
+                <section class="output-section" id="outputSection" style="display: none;">
+                    <div class="output-header">
+                        <h2>Generated Care Plan</h2>
+                        <div class="detected-conditions" id="detectedConditions"></div>
+                    </div>
 
-            <section class="error-section" id="errorSection" style="display: none;">
-                <h2>Error</h2>
-                <p id="errorMessage"></p>
-            </section>
+                    <div class="output-actions">
+                        <button onclick="copyToClipboard()" class="copy-btn">
+                            Copy to Clipboard
+                        </button>
+                        <span id="copyFeedback" class="copy-feedback"></span>
+                    </div>
+
+                    <pre id="carePlanOutput" class="care-plan-output"></pre>
+                </section>
+
+                <section class="error-section" id="errorSection" style="display: none;">
+                    <h2>Error</h2>
+                    <p id="errorMessage"></p>
+                </section>
+            </div>
         </main>
 
         <footer>
@@ -67,10 +359,178 @@ Example content:
                 <strong>Important:</strong> This tool assists with care plan documentation.
                 All care plans must be reviewed and approved by the treating GP before use.
             </p>
-            <p class="version">v1.0 | Medicare Item 965 Compliant | RACGP Guidelines 2024-2025</p>
+            <p class="version">v2.0 | Medicare Item 965 Compliant | RACGP Guidelines 2024-2025</p>
         </footer>
     </div>
 
     <script src="app.js"></script>
+    <script>
+        // Tab switching
+        function showTab(tab) {
+            document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+            if (tab === 'smart') {
+                document.querySelector('.nav-tab:nth-child(1)').classList.add('active');
+                document.getElementById('smartTab').classList.add('active');
+            } else {
+                document.querySelector('.nav-tab:nth-child(2)').classList.add('active');
+                document.getElementById('directTab').classList.add('active');
+            }
+        }
+
+        // SMART Goals workflow variables
+        let generatedQuestions = null;
+        let patientFormUrl = null;
+        let patientUuid = null;
+
+        // Generate SMART Goal Questions
+        async function generateQuestions() {
+            const patientId = document.getElementById('patientId').value.trim();
+            const patientEmail = document.getElementById('patientEmail').value.trim();
+            const healthSummary = document.getElementById('smartHealthSummary').value.trim();
+
+            if (!patientId) {
+                alert('Please enter a Patient ID');
+                return;
+            }
+
+            if (!healthSummary) {
+                alert('Please enter the health summary');
+                return;
+            }
+
+            const btn = document.getElementById('generateQuestionsBtn');
+            btn.querySelector('.btn-text').style.display = 'none';
+            btn.querySelector('.btn-loading').style.display = 'inline';
+            btn.disabled = true;
+
+            try {
+                // Generate questions
+                const questionsResponse = await fetch(
+                    `${CONFIG.SUPABASE_URL}/functions/v1/generate-questions`,
+                    {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${CONFIG.SUPABASE_ANON_KEY}`
+                        },
+                        body: JSON.stringify({ healthSummary })
+                    }
+                );
+
+                const questionsData = await questionsResponse.json();
+
+                if (!questionsResponse.ok) {
+                    throw new Error(questionsData.error || 'Failed to generate questions');
+                }
+
+                generatedQuestions = questionsData.questions;
+
+                // Save patient record
+                const saveResponse = await fetch(
+                    `${CONFIG.SUPABASE_URL}/functions/v1/save-patient-record`,
+                    {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${CONFIG.SUPABASE_ANON_KEY}`
+                        },
+                        body: JSON.stringify({
+                            patientId,
+                            healthSummary,
+                            conditions: questionsData.detectedConditions,
+                            questions: questionsData.questions,
+                            patientEmail
+                        })
+                    }
+                );
+
+                const saveData = await saveResponse.json();
+
+                if (!saveResponse.ok) {
+                    throw new Error(saveData.error || 'Failed to save patient record');
+                }
+
+                patientUuid = saveData.patientUuid;
+                patientFormUrl = saveData.formUrl;
+
+                // Display questions preview
+                displayQuestionsPreview(questionsData.questions);
+
+                // Show email section
+                document.getElementById('questionsPreview').classList.remove('hidden');
+                document.getElementById('emailSection').classList.remove('hidden');
+                document.getElementById('formLinkDisplay').textContent = `Form link: ${patientFormUrl}`;
+
+            } catch (error) {
+                alert('Error: ' + error.message);
+            } finally {
+                btn.querySelector('.btn-text').style.display = 'inline';
+                btn.querySelector('.btn-loading').style.display = 'none';
+                btn.disabled = false;
+            }
+        }
+
+        function displayQuestionsPreview(questions) {
+            const container = document.getElementById('questionsContent');
+            container.innerHTML = questions.map(section => `
+                <div class="question-section">
+                    <h4>${section.category}</h4>
+                    <ul>
+                        ${section.questions.map(q => `<li>${q}</li>`).join('')}
+                    </ul>
+                </div>
+            `).join('');
+        }
+
+        function sendToPatient() {
+            const patientEmail = document.getElementById('patientEmail').value.trim();
+
+            if (!patientEmail) {
+                alert('Please enter the patient email address');
+                return;
+            }
+
+            const subject = encodeURIComponent('Your Health Goals - YourGP Care Plan');
+            const body = encodeURIComponent(`Dear Patient,
+
+As part of your care planning, we'd like to understand your health goals better.
+
+Please click the link below to complete a short questionnaire about your health goals:
+
+${patientFormUrl}
+
+This will help us create a personalised care plan that focuses on what matters most to you.
+
+If you have any questions, please contact the practice.
+
+Kind regards,
+YourGP Care Team`);
+
+            window.location.href = `mailto:${patientEmail}?subject=${subject}&body=${body}`;
+        }
+
+        async function copyFormLink() {
+            if (!patientFormUrl) {
+                alert('No form link generated yet');
+                return;
+            }
+
+            try {
+                await navigator.clipboard.writeText(patientFormUrl);
+                alert('Form link copied to clipboard!');
+            } catch (error) {
+                // Fallback
+                const textarea = document.createElement('textarea');
+                textarea.value = patientFormUrl;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                alert('Form link copied to clipboard!');
+            }
+        }
+    </script>
 </body>
 </html>

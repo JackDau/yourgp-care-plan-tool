@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Care Plan Dashboard - YourGP</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .dashboard-header h1 {
+            margin: 0;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 12px;
+        }
+
+        .nav-links a {
+            color: #667eea;
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            background: #f0f4ff;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .nav-links a:hover {
+            background: #e0e7ff;
+        }
+
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .stat-card h3 {
+            color: #6b7280;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+
+        .stat-card .number {
+            font-size: 36px;
+            font-weight: 700;
+            color: #1f2937;
+        }
+
+        .stat-card.awaiting .number { color: #f59e0b; }
+        .stat-card.ready .number { color: #10b981; }
+        .stat-card.completed .number { color: #6b7280; }
+
+        .section {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            margin-bottom: 24px;
+        }
+
+        .section h2 {
+            color: #1f2937;
+            font-size: 18px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section h2 .badge {
+            background: #e5e7eb;
+            color: #6b7280;
+            font-size: 12px;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-weight: 600;
+        }
+
+        .section.ready h2 .badge {
+            background: #d1fae5;
+            color: #059669;
+        }
+
+        .section.awaiting h2 .badge {
+            background: #fef3c7;
+            color: #d97706;
+        }
+
+        .patient-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .patient-card {
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .patient-info {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .patient-info h4 {
+            color: #1f2937;
+            margin-bottom: 4px;
+        }
+
+        .patient-info .conditions {
+            color: #6b7280;
+            font-size: 14px;
+        }
+
+        .patient-info .date {
+            color: #9ca3af;
+            font-size: 12px;
+            margin-top: 4px;
+        }
+
+        .patient-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .btn-small {
+            padding: 8px 16px;
+            font-size: 14px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .btn-generate {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-generate:hover {
+            background: #059669;
+        }
+
+        .btn-view {
+            background: #f3f4f6;
+            color: #374151;
+        }
+
+        .btn-view:hover {
+            background: #e5e7eb;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #9ca3af;
+        }
+
+        .empty-state svg {
+            width: 48px;
+            height: 48px;
+            fill: #d1d5db;
+            margin-bottom: 12px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #6b7280;
+        }
+
+        .goals-preview {
+            margin-top: 12px;
+            padding: 12px;
+            background: #f9fafb;
+            border-radius: 6px;
+            font-size: 14px;
+            display: none;
+        }
+
+        .goals-preview.active {
+            display: block;
+        }
+
+        .goals-preview h5 {
+            color: #374151;
+            margin-bottom: 8px;
+        }
+
+        .goals-preview ul {
+            margin: 0;
+            padding-left: 20px;
+            color: #6b7280;
+        }
+
+        .goals-preview li {
+            margin-bottom: 4px;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            max-width: 800px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            padding: 24px;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #6b7280;
+        }
+
+        .care-plan-output {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 16px;
+            justify-content: flex-end;
+        }
+
+        .refresh-btn {
+            background: none;
+            border: 1px solid #e5e7eb;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            color: #6b7280;
+            font-size: 14px;
+        }
+
+        .refresh-btn:hover {
+            background: #f3f4f6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="dashboard-header">
+            <h1>Care Plan Dashboard</h1>
+            <div class="nav-links">
+                <a href="index.html">New Patient</a>
+                <button class="refresh-btn" onclick="loadData()">Refresh</button>
+            </div>
+        </div>
+
+        <div class="stats-row">
+            <div class="stat-card awaiting">
+                <h3>Awaiting Response</h3>
+                <div class="number" id="awaitingCount">-</div>
+            </div>
+            <div class="stat-card ready">
+                <h3>Ready for Care Plan</h3>
+                <div class="number" id="readyCount">-</div>
+            </div>
+            <div class="stat-card completed">
+                <h3>Completed</h3>
+                <div class="number" id="completedCount">-</div>
+            </div>
+        </div>
+
+        <div class="section ready">
+            <h2>Ready for Care Plan <span class="badge" id="readyBadge">0</span></h2>
+            <div id="readyList" class="patient-list">
+                <div class="loading">Loading...</div>
+            </div>
+        </div>
+
+        <div class="section awaiting">
+            <h2>Awaiting Patient Response <span class="badge" id="awaitingBadge">0</span></h2>
+            <div id="awaitingList" class="patient-list">
+                <div class="loading">Loading...</div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Recently Completed <span class="badge" id="completedBadge">0</span></h2>
+            <div id="completedList" class="patient-list">
+                <div class="loading">Loading...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Care Plan Modal -->
+    <div id="carePlanModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Generated Care Plan</h2>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div id="carePlanContent" class="care-plan-output"></div>
+            <div class="modal-actions">
+                <button class="btn-small btn-view" onclick="closeModal()">Close</button>
+                <button class="btn-small btn-generate" onclick="copyCarePlan()">Copy to Clipboard</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const CONFIG = {
+            SUPABASE_URL: 'https://pqaeswutidxsylbckytw.supabase.co',
+            SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBxYWVzd3V0aWR4c3lsYmNreXR3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA1NDk3MTcsImV4cCI6MjA4NjEyNTcxN30.6MmBtW-rVH-y9Si0yAPO31MM-FrMaG_p1Os3ddB-zNQ'
+        };
+
+        let currentCarePlan = '';
+
+        async function loadData() {
+            try {
+                const response = await fetch(
+                    `${CONFIG.SUPABASE_URL}/functions/v1/get-pending`,
+                    {
+                        headers: {
+                            'Authorization': `Bearer ${CONFIG.SUPABASE_ANON_KEY}`
+                        }
+                    }
+                );
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to load data');
+                }
+
+                // Update counts
+                document.getElementById('awaitingCount').textContent = data.totals.awaiting;
+                document.getElementById('readyCount').textContent = data.totals.ready;
+                document.getElementById('completedCount').textContent = data.totals.completed;
+
+                document.getElementById('awaitingBadge').textContent = data.totals.awaiting;
+                document.getElementById('readyBadge').textContent = data.totals.ready;
+                document.getElementById('completedBadge').textContent = data.totals.completed;
+
+                // Render lists
+                renderPatientList('readyList', data.ready, 'ready');
+                renderPatientList('awaitingList', data.awaiting, 'awaiting');
+                renderPatientList('completedList', data.completed.slice(0, 10), 'completed');
+
+            } catch (error) {
+                console.error('Error loading data:', error);
+            }
+        }
+
+        function renderPatientList(containerId, patients, type) {
+            const container = document.getElementById(containerId);
+
+            if (patients.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14H6v-2h6v2zm4-4H6v-2h10v2zm0-4H6V7h10v2z"/></svg>
+                        <p>No patients in this category</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = patients.map(patient => {
+                const conditions = (patient.conditions || []).join(', ') || 'No conditions detected';
+                const date = new Date(patient.createdAt).toLocaleDateString('en-AU', {
+                    day: 'numeric',
+                    month: 'short',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+
+                let actions = '';
+                let goalsPreview = '';
+
+                if (type === 'ready') {
+                    actions = `
+                        <button class="btn-small btn-view" onclick="toggleGoals('${patient.uuid}')">View Goals</button>
+                        <button class="btn-small btn-generate" onclick="generateCarePlan('${patient.uuid}')">Generate Care Plan</button>
+                    `;
+                    if (patient.submission?.goals) {
+                        goalsPreview = `
+                            <div id="goals-${patient.uuid}" class="goals-preview">
+                                <h5>Patient's Goals:</h5>
+                                <ul>
+                                    ${formatGoals(patient.submission.goals)}
+                                </ul>
+                            </div>
+                        `;
+                    }
+                } else if (type === 'completed') {
+                    const completedDate = patient.submission?.carePlanGeneratedAt
+                        ? new Date(patient.submission.carePlanGeneratedAt).toLocaleDateString('en-AU')
+                        : '';
+                    actions = `<span style="color: #9ca3af; font-size: 13px;">Completed ${completedDate}</span>`;
+                } else {
+                    actions = `<span style="color: #f59e0b; font-size: 13px;">Waiting for patient...</span>`;
+                }
+
+                return `
+                    <div class="patient-card">
+                        <div class="patient-info">
+                            <h4>Patient ID: ${patient.patientId}</h4>
+                            <div class="conditions">${conditions}</div>
+                            <div class="date">Created: ${date}</div>
+                        </div>
+                        <div class="patient-actions">
+                            ${actions}
+                        </div>
+                        ${goalsPreview}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function formatGoals(goals) {
+            if (!Array.isArray(goals)) return '<li>No goals recorded</li>';
+
+            return goals.map(section => {
+                const answers = Object.entries(section.answers || {})
+                    .filter(([_, v]) => v)
+                    .map(([q, a]) => `<li><strong>${section.category}:</strong> ${a}</li>`)
+                    .join('');
+                return answers;
+            }).join('');
+        }
+
+        function toggleGoals(uuid) {
+            const el = document.getElementById(`goals-${uuid}`);
+            if (el) {
+                el.classList.toggle('active');
+            }
+        }
+
+        async function generateCarePlan(patientUuid) {
+            const btn = event.target;
+            btn.disabled = true;
+            btn.textContent = 'Generating...';
+
+            try {
+                const response = await fetch(
+                    `${CONFIG.SUPABASE_URL}/functions/v1/generate-care-plan`,
+                    {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${CONFIG.SUPABASE_ANON_KEY}`
+                        },
+                        body: JSON.stringify({ patientUuid })
+                    }
+                );
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to generate care plan');
+                }
+
+                currentCarePlan = data.carePlan;
+                document.getElementById('carePlanContent').textContent = data.carePlan;
+                document.getElementById('carePlanModal').classList.add('active');
+
+                // Reload data to update status
+                loadData();
+
+            } catch (error) {
+                alert('Error generating care plan: ' + error.message);
+                btn.disabled = false;
+                btn.textContent = 'Generate Care Plan';
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('carePlanModal').classList.remove('active');
+        }
+
+        async function copyCarePlan() {
+            try {
+                await navigator.clipboard.writeText(currentCarePlan);
+                alert('Care plan copied to clipboard!');
+            } catch (error) {
+                // Fallback
+                const textarea = document.createElement('textarea');
+                textarea.value = currentCarePlan;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                alert('Care plan copied to clipboard!');
+            }
+        }
+
+        // Close modal on escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeModal();
+        });
+
+        // Load data on page load
+        loadData();
+
+        // Auto-refresh every 30 seconds
+        setInterval(loadData, 30000);
+    </script>
+</body>
+</html>

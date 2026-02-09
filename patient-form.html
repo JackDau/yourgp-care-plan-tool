@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Health Goals - YourGP</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 32px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            margin-bottom: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .header h1 {
+            color: #2d3748;
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            color: #718096;
+            font-size: 16px;
+            line-height: 1.6;
+        }
+
+        .intro-box {
+            background: #f0f9ff;
+            border-left: 4px solid #3b82f6;
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 24px;
+        }
+
+        .intro-box h3 {
+            color: #1e40af;
+            margin-bottom: 8px;
+        }
+
+        .intro-box p {
+            color: #1e3a5f;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .question-section {
+            margin-bottom: 32px;
+        }
+
+        .section-title {
+            background: #f8fafc;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            border-left: 4px solid #667eea;
+        }
+
+        .section-title h2 {
+            color: #4a5568;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .question-group {
+            margin-bottom: 20px;
+        }
+
+        .question-group label {
+            display: block;
+            color: #2d3748;
+            font-weight: 500;
+            margin-bottom: 8px;
+            font-size: 15px;
+            line-height: 1.5;
+        }
+
+        .question-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 15px;
+            line-height: 1.5;
+            resize: vertical;
+            min-height: 80px;
+            transition: border-color 0.2s;
+        }
+
+        .question-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .question-group textarea::placeholder {
+            color: #a0aec0;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 14px 32px;
+            font-size: 16px;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            width: 100%;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:disabled {
+            background: #cbd5e0;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #e2e8f0;
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .success-message {
+            display: none;
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .success-message.active {
+            display: block;
+        }
+
+        .success-icon {
+            width: 80px;
+            height: 80px;
+            background: #10b981;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+        }
+
+        .success-icon svg {
+            width: 40px;
+            height: 40px;
+            fill: white;
+        }
+
+        .success-message h2 {
+            color: #059669;
+            margin-bottom: 12px;
+        }
+
+        .success-message p {
+            color: #6b7280;
+            line-height: 1.6;
+        }
+
+        .error-message {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #dc2626;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            display: none;
+        }
+
+        .error-message.active {
+            display: block;
+        }
+
+        .already-submitted {
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .already-submitted h2 {
+            color: #3b82f6;
+            margin-bottom: 12px;
+        }
+
+        .footer {
+            text-align: center;
+            color: rgba(255,255,255,0.8);
+            font-size: 14px;
+            margin-top: 20px;
+        }
+
+        @media (max-width: 600px) {
+            .card {
+                padding: 24px 16px;
+            }
+
+            .header h1 {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <div class="header">
+                <h1>Your Health Goals</h1>
+                <p>Help us understand what matters most to you so we can create a personalised care plan together.</p>
+            </div>
+
+            <div id="loading" class="loading active">
+                <div class="spinner"></div>
+                <p>Loading your questions...</p>
+            </div>
+
+            <div id="alreadySubmitted" class="already-submitted" style="display: none;">
+                <h2>Already Submitted</h2>
+                <p>You have already submitted your health goals. Your care team will be in touch soon.</p>
+                <p style="margin-top: 16px; color: #9ca3af;">If you need to make changes, please contact the practice.</p>
+            </div>
+
+            <div id="formContent" style="display: none;">
+                <div class="intro-box">
+                    <h3>What are SMART Goals?</h3>
+                    <p>SMART goals help you set clear, achievable health targets. Think about goals that are <strong>Specific</strong> (clear and defined), <strong>Measurable</strong> (you can track progress), <strong>Achievable</strong> (realistic for you), <strong>Relevant</strong> (important to your health), and <strong>Time-bound</strong> (have a timeframe).</p>
+                </div>
+
+                <div id="error" class="error-message"></div>
+
+                <form id="goalsForm">
+                    <div id="questionsContainer"></div>
+
+                    <button type="submit" class="btn btn-primary" id="submitBtn">
+                        Submit My Health Goals
+                    </button>
+                </form>
+            </div>
+
+            <div id="successMessage" class="success-message">
+                <div class="success-icon">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                    </svg>
+                </div>
+                <h2>Thank You!</h2>
+                <p>Your health goals have been submitted successfully.</p>
+                <p style="margin-top: 12px;">Your care team will use these to create a personalised care plan for you. You can close this page now.</p>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>YourGP Care Plan Programme</p>
+        </div>
+    </div>
+
+    <script>
+        const CONFIG = {
+            SUPABASE_URL: 'https://pqaeswutidxsylbckytw.supabase.co',
+            SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBxYWVzd3V0aWR4c3lsYmNreXR3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA1NDk3MTcsImV4cCI6MjA4NjEyNTcxN30.6MmBtW-rVH-y9Si0yAPO31MM-FrMaG_p1Os3ddB-zNQ'
+        };
+
+        let patientUuid = null;
+        let questionsData = null;
+
+        async function init() {
+            // Get patient ID from URL
+            const urlParams = new URLSearchParams(window.location.search);
+            patientUuid = urlParams.get('id');
+
+            if (!patientUuid) {
+                showError('Invalid link. Please use the link sent to your email.');
+                document.getElementById('loading').classList.remove('active');
+                return;
+            }
+
+            try {
+                // Fetch patient questions
+                const response = await fetch(
+                    `${CONFIG.SUPABASE_URL}/functions/v1/submit-goals?id=${patientUuid}`,
+                    {
+                        headers: {
+                            'Authorization': `Bearer ${CONFIG.SUPABASE_ANON_KEY}`
+                        }
+                    }
+                );
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to load questions');
+                }
+
+                if (data.alreadySubmitted) {
+                    document.getElementById('loading').classList.remove('active');
+                    document.getElementById('alreadySubmitted').style.display = 'block';
+                    return;
+                }
+
+                questionsData = data.questions;
+                renderQuestions(data.questions);
+
+                document.getElementById('loading').classList.remove('active');
+                document.getElementById('formContent').style.display = 'block';
+
+            } catch (error) {
+                showError(error.message);
+                document.getElementById('loading').classList.remove('active');
+            }
+        }
+
+        function renderQuestions(questions) {
+            const container = document.getElementById('questionsContainer');
+            container.innerHTML = '';
+
+            questions.forEach((section, sectionIndex) => {
+                const sectionDiv = document.createElement('div');
+                sectionDiv.className = 'question-section';
+
+                sectionDiv.innerHTML = `
+                    <div class="section-title">
+                        <h2>${section.category}</h2>
+                    </div>
+                `;
+
+                section.questions.forEach((question, questionIndex) => {
+                    const questionDiv = document.createElement('div');
+                    questionDiv.className = 'question-group';
+                    questionDiv.innerHTML = `
+                        <label for="q_${sectionIndex}_${questionIndex}">${question}</label>
+                        <textarea
+                            id="q_${sectionIndex}_${questionIndex}"
+                            name="q_${sectionIndex}_${questionIndex}"
+                            data-section="${sectionIndex}"
+                            data-question="${question}"
+                            placeholder="Type your answer here..."
+                            rows="3"
+                        ></textarea>
+                    `;
+                    sectionDiv.appendChild(questionDiv);
+                });
+
+                container.appendChild(sectionDiv);
+            });
+        }
+
+        function showError(message) {
+            const errorEl = document.getElementById('error');
+            errorEl.textContent = message;
+            errorEl.classList.add('active');
+        }
+
+        function hideError() {
+            document.getElementById('error').classList.remove('active');
+        }
+
+        async function handleSubmit(e) {
+            e.preventDefault();
+            hideError();
+
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Submitting...';
+
+            try {
+                // Collect answers grouped by section
+                const goals = [];
+                const textareas = document.querySelectorAll('#questionsContainer textarea');
+
+                // Group by section
+                const sections = {};
+                textareas.forEach(textarea => {
+                    const sectionIndex = textarea.dataset.section;
+                    const question = textarea.dataset.question;
+                    const answer = textarea.value.trim();
+
+                    if (!sections[sectionIndex]) {
+                        sections[sectionIndex] = {
+                            category: questionsData[sectionIndex].category,
+                            answers: {}
+                        };
+                    }
+
+                    if (answer) {
+                        sections[sectionIndex].answers[question] = answer;
+                    }
+                });
+
+                // Convert to array
+                for (const section of Object.values(sections)) {
+                    if (Object.keys(section.answers).length > 0) {
+                        goals.push(section);
+                    }
+                }
+
+                if (goals.length === 0) {
+                    throw new Error('Please answer at least one question before submitting.');
+                }
+
+                // Submit goals
+                const response = await fetch(
+                    `${CONFIG.SUPABASE_URL}/functions/v1/submit-goals`,
+                    {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${CONFIG.SUPABASE_ANON_KEY}`
+                        },
+                        body: JSON.stringify({
+                            patientUuid,
+                            goals
+                        })
+                    }
+                );
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to submit goals');
+                }
+
+                // Show success
+                document.getElementById('formContent').style.display = 'none';
+                document.getElementById('successMessage').classList.add('active');
+
+            } catch (error) {
+                showError(error.message);
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Submit My Health Goals';
+            }
+        }
+
+        document.getElementById('goalsForm').addEventListener('submit', handleSubmit);
+        init();
+    </script>
+</body>
+</html>

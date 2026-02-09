@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import Anthropic from "npm:@anthropic-ai/sdk@0.39.0";
+import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -237,20 +238,105 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const { healthSummary } = await req.json();
+    const { healthSummary, patientUuid } = await req.json();
 
-    if (!healthSummary || typeof healthSummary !== "string") {
+    let patientGoals: any[] = [];
+    let patientHealthSummary = healthSummary;
+    let patientConditions: string[] = [];
+
+    // If patientUuid provided, fetch patient data and goals from database
+    if (patientUuid) {
+      const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+      const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+      const supabase = createClient(supabaseUrl, supabaseKey);
+
+      // Fetch patient and submission data
+      const { data: patient, error: patientError } = await supabase
+        .from("patients")
+        .select(`
+          id,
+          health_summary,
+          conditions,
+          submissions (
+            goals
+          )
+        `)
+        .eq("id", patientUuid)
+        .single();
+
+      if (patientError || !patient) {
+        return new Response(
+          JSON.stringify({ error: "Patient not found" }),
+          { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      patientHealthSummary = patient.health_summary || healthSummary;
+      patientConditions = patient.conditions || [];
+
+      if (patient.submissions?.[0]?.goals) {
+        patientGoals = patient.submissions[0].goals;
+      }
+
+      // Mark care plan as generated
+      if (patient.submissions?.[0]) {
+        await supabase
+          .from("submissions")
+          .update({
+            care_plan_generated: true,
+            care_plan_generated_at: new Date().toISOString()
+          })
+          .eq("patient_uuid", patientUuid);
+      }
+    }
+
+    if (!patientHealthSummary || typeof patientHealthSummary !== "string") {
       return new Response(
         JSON.stringify({ error: "Health summary is required" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Detect conditions from health summary
-    const detectedConditions = detectConditions(healthSummary);
+    // Detect conditions from health summary (or use stored conditions)
+    const detectedConditions = patientConditions.length > 0
+      ? patientConditions
+      : detectConditions(patientHealthSummary);
 
     // Build system prompt
     const systemPrompt = buildSystemPrompt(detectedConditions);
+
+    // Build user message with patient goals if available
+    let userMessage = `Please generate a Medicare-compliant GPCCMP (GP Chronic Condition Management Plan) based on the following de-identified patient health summary:
+
+---
+${patientHealthSummary}
+---`;
+
+    if (patientGoals.length > 0) {
+      userMessage += `
+
+## IMPORTANT: Patient's Own SMART Goals
+
+The patient has provided their own health goals. These MUST be incorporated into the "HEALTH & LIFESTYLE GOALS" section of the care plan. Use the patient's own words where appropriate:
+
+`;
+      for (const goal of patientGoals) {
+        if (goal.category && goal.answers) {
+          userMessage += `\n### ${goal.category}\n`;
+          for (const [question, answer] of Object.entries(goal.answers)) {
+            if (answer && typeof answer === 'string' && answer.trim()) {
+              userMessage += `- ${question}: "${answer}"\n`;
+            }
+          }
+        }
+      }
+      userMessage += `
+Please integrate these patient-stated goals into the care plan, ensuring they are SMART (Specific, Measurable, Achievable, Relevant, Time-bound).`;
+    }
+
+    userMessage += `
+
+Generate a complete, structured care plan following the format specified. Include all required Medicare Item 965 elements.`;
 
     // Initialize Anthropic client
     const client = new Anthropic();
@@ -262,13 +348,7 @@ Deno.serve(async (req: Request) => {
       messages: [
         {
           role: "user",
-          content: `Please generate a Medicare-compliant GPCCMP (GP Chronic Condition Management Plan) based on the following de-identified patient health summary:
-
----
-${healthSummary}
----
-
-Generate a complete, structured care plan following the format specified. Include all required Medicare Item 965 elements.`
+          content: userMessage
         }
       ],
       system: systemPrompt
@@ -282,7 +362,8 @@ Generate a complete, structured care plan following the format specified. Includ
     return new Response(
       JSON.stringify({
         carePlan,
-        detectedConditions
+        detectedConditions,
+        patientGoalsIncluded: patientGoals.length > 0
       }),
       {
         status: 200,
