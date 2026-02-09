@@ -17,6 +17,18 @@
 
         .dashboard-header h1 {
             margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .version-badge {
+            background: #f0f4ff;
+            color: #667eea;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
         }
 
         .nav-links {
@@ -319,7 +331,7 @@
 <body>
     <div class="container">
         <div class="dashboard-header">
-            <h1>Care Plan Dashboard</h1>
+            <h1>Care Plan Dashboard <span class="version-badge">v2.1</span></h1>
             <div class="nav-links">
                 <a href="index.html">New Patient</a>
                 <button class="refresh-btn" onclick="loadData()">Refresh</button>
