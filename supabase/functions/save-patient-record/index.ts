@@ -49,8 +49,8 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Generate form URL
-    const baseUrl = req.headers.get("origin") || "https://jackdau.github.io/yourgp-care-plan-tool";
+    // Generate form URL (hardcoded since origin header doesn't include repo path)
+    const baseUrl = "https://jackdau.github.io/yourgp-care-plan-tool";
     const formUrl = `${baseUrl}/patient-form.html?id=${data.id}`;
 
     return new Response(
