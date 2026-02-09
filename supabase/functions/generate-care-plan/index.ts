@@ -277,17 +277,6 @@ Deno.serve(async (req: Request) => {
       if (patient.submissions?.[0]?.goals) {
         patientGoals = patient.submissions[0].goals;
       }
-
-      // Mark care plan as generated
-      if (patient.submissions?.[0]) {
-        await supabase
-          .from("submissions")
-          .update({
-            care_plan_generated: true,
-            care_plan_generated_at: new Date().toISOString()
-          })
-          .eq("patient_uuid", patientUuid);
-      }
     }
 
     if (!patientHealthSummary || typeof patientHealthSummary !== "string") {
@@ -358,6 +347,22 @@ Generate a complete, structured care plan following the format specified. Includ
     const carePlan = message.content[0].type === "text"
       ? message.content[0].text
       : "Error generating care plan";
+
+    // Save care plan to database if this was a patient-based generation
+    if (patientUuid) {
+      const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+      const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+      const supabase = createClient(supabaseUrl, supabaseKey);
+
+      await supabase
+        .from("submissions")
+        .update({
+          care_plan_generated: true,
+          care_plan_generated_at: new Date().toISOString(),
+          care_plan_text: carePlan
+        })
+        .eq("patient_uuid", patientUuid);
+    }
 
     return new Response(
       JSON.stringify({

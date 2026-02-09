@@ -33,7 +33,8 @@ Deno.serve(async (req: Request) => {
           goals,
           submitted_at,
           care_plan_generated,
-          care_plan_generated_at
+          care_plan_generated_at,
+          care_plan_text
         )
       `)
       .order("created_at", { ascending: false });
@@ -60,7 +61,8 @@ Deno.serve(async (req: Request) => {
           goals: submission.goals,
           submittedAt: submission.submitted_at,
           carePlanGenerated: submission.care_plan_generated,
-          carePlanGeneratedAt: submission.care_plan_generated_at
+          carePlanGeneratedAt: submission.care_plan_generated_at,
+          carePlanText: submission.care_plan_text
         } : null
       };
 

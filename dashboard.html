@@ -177,6 +177,16 @@
             background: #e5e7eb;
         }
 
+        .btn-delete {
+            background: #fee2e2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+        }
+
+        .btn-delete:hover {
+            background: #fecaca;
+        }
+
         .empty-state {
             text-align: center;
             padding: 40px 20px;
@@ -375,6 +385,7 @@
         };
 
         let currentCarePlan = '';
+        let carePlanTexts = {}; // Store care plan texts by patient UUID
 
         async function loadData() {
             try {
@@ -401,6 +412,14 @@
                 document.getElementById('awaitingBadge').textContent = data.totals.awaiting;
                 document.getElementById('readyBadge').textContent = data.totals.ready;
                 document.getElementById('completedBadge').textContent = data.totals.completed;
+
+                // Store care plan texts for completed patients
+                carePlanTexts = {};
+                for (const patient of data.completed) {
+                    if (patient.submission?.carePlanText) {
+                        carePlanTexts[patient.uuid] = patient.submission.carePlanText;
+                    }
+                }
 
                 // Render lists
                 renderPatientList('readyList', data.ready, 'ready');
@@ -442,6 +461,7 @@
                     actions = `
                         <button class="btn-small btn-view" onclick="toggleGoals('${patient.uuid}')">View Goals</button>
                         <button class="btn-small btn-generate" onclick="generateCarePlan('${patient.uuid}')">Generate Care Plan</button>
+                        <button class="btn-small btn-delete" onclick="deletePatient('${patient.uuid}')">Delete</button>
                     `;
                     if (patient.submission?.goals) {
                         goalsPreview = `
@@ -457,9 +477,16 @@
                     const completedDate = patient.submission?.carePlanGeneratedAt
                         ? new Date(patient.submission.carePlanGeneratedAt).toLocaleDateString('en-AU')
                         : '';
-                    actions = `<span style="color: #9ca3af; font-size: 13px;">Completed ${completedDate}</span>`;
+                    const hasCarePlan = patient.submission?.carePlanText ? 'true' : 'false';
+                    actions = `
+                        <button class="btn-small btn-view" onclick="viewCarePlan('${patient.uuid}')" data-has-plan="${hasCarePlan}" data-uuid="${patient.uuid}">View Care Plan</button>
+                        <span style="color: #9ca3af; font-size: 13px; margin-left: 8px;">Completed ${completedDate}</span>
+                    `;
                 } else {
-                    actions = `<span style="color: #f59e0b; font-size: 13px;">Waiting for patient...</span>`;
+                    actions = `
+                        <span style="color: #f59e0b; font-size: 13px;">Waiting for patient...</span>
+                        <button class="btn-small btn-delete" onclick="deletePatient('${patient.uuid}')">Delete</button>
+                    `;
                 }
 
                 return `
@@ -552,6 +579,48 @@
                 document.execCommand('copy');
                 document.body.removeChild(textarea);
                 alert('Care plan copied to clipboard!');
+            }
+        }
+
+        function viewCarePlan(patientUuid) {
+            const carePlanText = carePlanTexts[patientUuid];
+            if (!carePlanText) {
+                alert('Care plan text not available. This may be a care plan generated before this feature was added.');
+                return;
+            }
+            currentCarePlan = carePlanText;
+            document.getElementById('carePlanContent').textContent = carePlanText;
+            document.getElementById('carePlanModal').classList.add('active');
+        }
+
+        async function deletePatient(patientUuid) {
+            if (!confirm('Are you sure you want to delete this patient record? This cannot be undone.')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(
+                    `${CONFIG.SUPABASE_URL}/functions/v1/delete-patient`,
+                    {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${CONFIG.SUPABASE_ANON_KEY}`
+                        },
+                        body: JSON.stringify({ patientUuid })
+                    }
+                );
+
+                if (!response.ok) {
+                    const data = await response.json();
+                    throw new Error(data.error || 'Failed to delete patient');
+                }
+
+                // Reload data to refresh the list
+                loadData();
+
+            } catch (error) {
+                alert('Error deleting patient: ' + error.message);
             }
         }
 
