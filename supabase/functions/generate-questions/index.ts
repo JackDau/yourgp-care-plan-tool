@@ -37,37 +37,39 @@ const conditionKeywords: Record<string, string[]> = {
   ]
 };
 
-// Condition-specific SMART goal questions
-const conditionQuestions: Record<string, string[]> = {
+// Condition-specific SMART goal questions with theme tags for deduplication
+// When a patient has multiple conditions, each theme (exercise, diet, smoking, etc.)
+// will only be asked ONCE, using the first condition that includes that theme
+const themedQuestions: Record<string, { theme: string; question: string }[]> = {
   diabetes: [
-    "What eating habit would you like to change to help manage your blood sugar levels?",
-    "What type of physical activity would you enjoy doing more regularly?",
-    "How would you like to be more involved in monitoring your diabetes?"
+    { theme: "diet", question: "What eating habit would you like to change to help manage your blood sugar levels?" },
+    { theme: "exercise", question: "What type of physical activity would you enjoy doing more regularly?" },
+    { theme: "monitoring", question: "How would you like to be more involved in monitoring your health?" }
   ],
   copd: [
-    "What physical activity would you like to be able to do more easily?",
-    "What would help you feel more confident managing your breathing?",
-    "If you smoke, what would help you reduce or quit?"
+    { theme: "breathing", question: "What would help you feel more confident managing your breathing?" },
+    { theme: "smoking", question: "If you smoke, what would help you reduce or quit?" },
+    { theme: "exercise", question: "What physical activity would you like to be able to do more easily?" }
   ],
   cvd: [
-    "What heart-healthy habit would you like to develop?",
-    "What changes to your diet would you like to make for your heart?",
-    "How would you like to be more active in your daily life?"
+    { theme: "diet", question: "What changes to your diet would you like to make for your heart?" },
+    { theme: "exercise", question: "How would you like to be more active in your daily life?" },
+    { theme: "smoking", question: "What habit would you like to change to improve your heart health?" }
   ],
   mentalHealth: [
-    "What activity brings you joy that you'd like to do more often?",
-    "What would help you feel more in control of your mental wellbeing?",
-    "What kind of support would be most helpful for you right now?"
+    { theme: "joy", question: "What activity brings you joy that you'd like to do more often?" },
+    { theme: "control", question: "What would help you feel more in control of your mental wellbeing?" },
+    { theme: "support", question: "What kind of support would be most helpful for you right now?" }
   ],
   ckd: [
-    "What dietary changes would you like to make to protect your kidneys?",
-    "How would you like to be more involved in monitoring your kidney health?",
-    "What lifestyle change do you think would make the biggest difference?"
+    { theme: "diet", question: "What dietary changes would you like to make to protect your kidneys?" },
+    { theme: "monitoring", question: "How would you like to be more involved in monitoring your kidney health?" },
+    { theme: "lifestyle", question: "What lifestyle change do you think would make the biggest difference?" }
   ],
   osteoarthritis: [
-    "What movement or activity do you want to maintain or improve?",
-    "What would help you manage pain and stay active?",
-    "What daily task would you like to do more easily?"
+    { theme: "exercise", question: "What movement or activity do you want to maintain or improve?" },
+    { theme: "pain", question: "What would help you manage pain and stay active?" },
+    { theme: "daily", question: "What daily task would you like to do more easily?" }
   ]
 };
 
@@ -135,13 +137,31 @@ Deno.serve(async (req: Request) => {
       questions: generalQuestions
     });
 
-    // Add condition-specific questions
+    // Track used themes to avoid duplicate questions across conditions
+    // e.g., if diabetes asks about exercise, don't ask about exercise again under OA
+    const usedThemes = new Set<string>();
+
+    // Add condition-specific questions with deduplication
     for (const condition of detectedConditions) {
-      if (conditionQuestions[condition]) {
-        questions.push({
-          category: getConditionDisplayName(condition),
-          questions: conditionQuestions[condition]
-        });
+      const conditionQs = themedQuestions[condition];
+      if (conditionQs) {
+        const uniqueQuestions: string[] = [];
+
+        for (const q of conditionQs) {
+          // Only add the question if this theme hasn't been used yet
+          if (!usedThemes.has(q.theme)) {
+            usedThemes.add(q.theme);
+            uniqueQuestions.push(q.question);
+          }
+        }
+
+        // Only add the category if it has at least one unique question
+        if (uniqueQuestions.length > 0) {
+          questions.push({
+            category: getConditionDisplayName(condition),
+            questions: uniqueQuestions
+          });
+        }
       }
     }
 
