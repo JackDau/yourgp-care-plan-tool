@@ -254,7 +254,7 @@
 <body>
     <div class="container">
         <div class="card">
-            <div class="header">
+            <div id="pageHeader" class="header">
                 <h1>Your Health Goals</h1>
                 <p>Help us understand what matters most to you so we can create a personalised care plan together.</p>
             </div>
@@ -309,7 +309,7 @@
         </div>
 
         <div class="footer">
-            <p>YourGP Care Plan Programme | v2.2</p>
+            <p>YourGP Care Plan Programme | v2.3</p>
         </div>
     </div>
 
@@ -480,6 +480,7 @@
 
                 // Show success
                 document.getElementById('formContent').style.display = 'none';
+                document.getElementById('pageHeader').style.display = 'none';
                 document.getElementById('successMessage').classList.add('active');
 
             } catch (error) {
