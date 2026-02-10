@@ -225,7 +225,7 @@
                     <h1>YourGP Care Plan Generator</h1>
                     <p class="subtitle">Medicare-compliant GPCCMP (Item 965) generation tool</p>
                 </div>
-                <span class="version-badge">v2.1</span>
+                <span class="version-badge">v2.2</span>
             </div>
             <a href="dashboard.html" class="dashboard-link">View Dashboard &rarr;</a>
         </header>
@@ -290,10 +290,13 @@ Example:
                 <!-- Email Section -->
                 <section id="emailSection" class="email-section hidden">
                     <h3>Send to Patient</h3>
-                    <p style="margin-bottom: 12px;">Click below to open your email with the patient link pre-filled.</p>
+                    <p style="margin-bottom: 12px;">Send the questionnaire link to the patient via email.</p>
                     <div class="btn-row">
-                        <button onclick="sendToPatient()" class="btn-success">
-                            Open Email to Send
+                        <button id="sendEmailBtn" onclick="sendEmailViaServer()" class="btn-success">
+                            Send Email from noreply@ygp.au
+                        </button>
+                        <button onclick="openMailtoFallback()" class="btn-secondary">
+                            Open in Outlook (Backup)
                         </button>
                         <button onclick="copyFormLink()" class="btn-secondary">
                             Copy Form Link
@@ -359,7 +362,7 @@ Example content:
                 <strong>Important:</strong> This tool assists with care plan documentation.
                 All care plans must be reviewed and approved by the treating GP before use.
             </p>
-            <p class="version">v2.1 | Medicare Item 965 Compliant | RACGP Guidelines 2024-2025</p>
+            <p class="version">v2.2 | Medicare Item 965 Compliant | RACGP Guidelines 2024-2025</p>
         </footer>
     </div>
 
@@ -484,7 +487,56 @@ Example content:
             `).join('');
         }
 
-        function sendToPatient() {
+        // Send email via server (from noreply@ygp.au)
+        async function sendEmailViaServer() {
+            const patientEmail = document.getElementById('patientEmail').value.trim();
+
+            if (!patientEmail) {
+                alert('Please enter the patient email address');
+                return;
+            }
+
+            const sendBtn = document.getElementById('sendEmailBtn');
+            const originalText = sendBtn.textContent;
+            sendBtn.disabled = true;
+            sendBtn.textContent = 'Sending...';
+
+            try {
+                const response = await fetch(
+                    `${CONFIG.SUPABASE_URL}/functions/v1/send-patient-email`,
+                    {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${CONFIG.SUPABASE_ANON_KEY}`
+                        },
+                        body: JSON.stringify({
+                            patientEmail,
+                            patientFormUrl,
+                            patientId: document.getElementById('patientId').value
+                        })
+                    }
+                );
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to send email');
+                }
+
+                alert('Email sent successfully to ' + patientEmail + ' from noreply@ygp.au');
+                sendBtn.textContent = 'Email Sent ✓';
+                sendBtn.style.background = '#10b981';
+
+            } catch (error) {
+                alert('Error sending email: ' + error.message + '\n\nUse the "Open in Outlook" backup button instead.');
+                sendBtn.disabled = false;
+                sendBtn.textContent = originalText;
+            }
+        }
+
+        // Fallback: Open in Outlook via mailto
+        function openMailtoFallback() {
             const patientEmail = document.getElementById('patientEmail').value.trim();
 
             if (!patientEmail) {
