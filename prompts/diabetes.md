@@ -43,6 +43,23 @@ RACGP Management of Type 2 Diabetes: A Handbook for General Practice (2024 Editi
 - Higher rates of depression in T2DM
 - Psychological support if needed
 
+### Lifestyle
+- Doing any physical activity is better than doing none
+- If you currently do no physical activity, start by doing some, and gradually increase
+- Be active on most, preferably all, days every week
+- Aim for at least 150 minutes (2.5 hours) of moderate intensity physical activity each week
+- Do muscle strengthening activities on at least 2 days each week
+- Healthy eating - reduce processed foods, increase vegetables, optimise protein
+
+### Monitor and Manage
+- Blood tests to check HbA1c, ideally <7.0%
+- Blood tests to check cholesterol, liver and kidney function
+- Urine test to check kidney health (urine microalbumin ratio, best 1st in morning)
+- BP less than 130/80
+- Optometry check for diabetic retinopathy
+- Foot check (circulation and sensation)
+- Immunisations - keep up to date with flu, COVID and pneumococcal
+
 ## Typical Allied Health Referrals
 - Dietitian (diabetes educator) - MNT and carbohydrate management
 - Podiatrist - foot assessment and care
