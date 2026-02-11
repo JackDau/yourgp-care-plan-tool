@@ -74,10 +74,10 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Verify patient exists
+    // Verify patient exists and get site info
     const { data: patient, error: patientError } = await supabase
       .from("patients")
-      .select("id")
+      .select("id, health_summary, conditions, site")
       .eq("id", patientUuid)
       .single();
 
@@ -119,8 +119,76 @@ Deno.serve(async (req: Request) => {
       }
     }
 
+    // Cancel pending reminder jobs for this patient (they submitted)
+    await supabase
+      .from("scheduled_jobs")
+      .update({ status: "cancelled" })
+      .eq("patient_uuid", patientUuid)
+      .eq("job_type", "patient_reminder")
+      .eq("status", "pending");
+
+    // AUTO-GENERATE care plan by calling the generate-care-plan function
+    let carePlanGenerated = false;
+    try {
+      const generateResponse = await fetch(
+        `${supabaseUrl}/functions/v1/generate-care-plan`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${supabaseKey}`,
+          },
+          body: JSON.stringify({ patientUuid }),
+        }
+      );
+
+      if (generateResponse.ok) {
+        carePlanGenerated = true;
+
+        // Schedule care plan email (1 hour delay)
+        const emailTime = new Date();
+        emailTime.setHours(emailTime.getHours() + 1);
+
+        await supabase.from("scheduled_jobs").insert({
+          job_type: "care_plan_email",
+          patient_uuid: patientUuid,
+          scheduled_for: emailTime.toISOString(),
+          status: "pending",
+          max_attempts: 3,
+        });
+      } else {
+        console.error("Failed to auto-generate care plan:", await generateResponse.text());
+      }
+    } catch (genError) {
+      console.error("Error auto-generating care plan:", genError);
+      // Non-fatal - goals were still saved
+    }
+
+    // Look up HotDoc booking URL for the patient's site
+    let hotdocUrl: string | null = null;
+    if (patient.site) {
+      const { data: siteConfig } = await supabase
+        .from("sites_config")
+        .select("hotdoc_booking_url")
+        .eq("site_name", patient.site)
+        .single();
+
+      if (siteConfig) {
+        hotdocUrl = siteConfig.hotdoc_booking_url;
+      }
+    }
+
+    // If no site-specific URL, use a default
+    if (!hotdocUrl) {
+      hotdocUrl = "https://www.hotdoc.com.au/medical-centres/crace/yourgp-crace/doctors";
+    }
+
     return new Response(
-      JSON.stringify({ success: true }),
+      JSON.stringify({
+        success: true,
+        carePlanGenerated,
+        hotdocUrl,
+      }),
       {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" }

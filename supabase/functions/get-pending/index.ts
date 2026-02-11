@@ -28,13 +28,21 @@ Deno.serve(async (req: Request) => {
         patient_email,
         email_sent,
         created_at,
+        gp_name,
+        site,
+        reminder_count,
+        last_reminder_sent_at,
         submissions (
           id,
           goals,
           submitted_at,
           care_plan_generated,
           care_plan_generated_at,
-          care_plan_text
+          care_plan_text,
+          care_plan_email_sent,
+          care_plan_email_sent_at,
+          consultation_completed,
+          consultation_completed_at
         )
       `)
       .order("created_at", { ascending: false });
@@ -46,7 +54,8 @@ Deno.serve(async (req: Request) => {
     // Categorize patients
     const awaiting: any[] = [];      // Email sent, no submission yet
     const ready: any[] = [];          // Submission received, care plan not generated
-    const completed: any[] = [];      // Care plan generated
+    const completed: any[] = [];      // Care plan generated but consultation not completed
+    const closed: any[] = [];         // Consultation completed (closed loop)
 
     for (const patient of patients || []) {
       const submission = patient.submissions?.[0];
@@ -57,16 +66,26 @@ Deno.serve(async (req: Request) => {
         conditions: patient.conditions,
         email: patient.patient_email,
         createdAt: patient.created_at,
+        gpName: patient.gp_name,
+        site: patient.site,
+        reminderCount: patient.reminder_count,
+        lastReminderSentAt: patient.last_reminder_sent_at,
         submission: submission ? {
           goals: submission.goals,
           submittedAt: submission.submitted_at,
           carePlanGenerated: submission.care_plan_generated,
           carePlanGeneratedAt: submission.care_plan_generated_at,
-          carePlanText: submission.care_plan_text
+          carePlanText: submission.care_plan_text,
+          carePlanEmailSent: submission.care_plan_email_sent,
+          carePlanEmailSentAt: submission.care_plan_email_sent_at,
+          consultationCompleted: submission.consultation_completed,
+          consultationCompletedAt: submission.consultation_completed_at,
         } : null
       };
 
-      if (submission?.care_plan_generated) {
+      if (submission?.consultation_completed) {
+        closed.push(patientData);
+      } else if (submission?.care_plan_generated) {
         completed.push(patientData);
       } else if (submission) {
         ready.push(patientData);
@@ -77,13 +96,15 @@ Deno.serve(async (req: Request) => {
 
     return new Response(
       JSON.stringify({
-        awaiting,    // Waiting for patient to complete form
-        ready,       // Ready for care plan generation
-        completed,   // Care plan already generated
+        awaiting,
+        ready,
+        completed,
+        closed,
         totals: {
           awaiting: awaiting.length,
           ready: ready.length,
-          completed: completed.length
+          completed: completed.length,
+          closed: closed.length,
         }
       }),
       {

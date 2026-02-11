@@ -50,9 +50,42 @@
             background: #e0e7ff;
         }
 
+        /* Filter bar */
+        .filter-bar {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+            align-items: center;
+            padding: 16px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .filter-bar label {
+            font-weight: 500;
+            color: #374151;
+            font-size: 14px;
+        }
+
+        .filter-bar select {
+            padding: 8px 12px;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            font-size: 14px;
+            background: white;
+            cursor: pointer;
+        }
+
+        .filter-bar select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
         .stats-row {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
             gap: 16px;
             margin-bottom: 32px;
         }
@@ -78,8 +111,9 @@
         }
 
         .stat-card.awaiting .number { color: #f59e0b; }
-        .stat-card.ready .number { color: #10b981; }
-        .stat-card.completed .number { color: #6b7280; }
+        .stat-card.ready .number { color: #3b82f6; }
+        .stat-card.completed .number { color: #10b981; }
+        .stat-card.closed .number { color: #6b7280; }
 
         .section {
             background: white;
@@ -108,13 +142,23 @@
         }
 
         .section.ready h2 .badge {
-            background: #d1fae5;
-            color: #059669;
+            background: #dbeafe;
+            color: #2563eb;
         }
 
         .section.awaiting h2 .badge {
             background: #fef3c7;
             color: #d97706;
+        }
+
+        .section.completed h2 .badge {
+            background: #d1fae5;
+            color: #059669;
+        }
+
+        .section.closed h2 .badge {
+            background: #e5e7eb;
+            color: #6b7280;
         }
 
         .patient-list {
@@ -155,10 +199,24 @@
             margin-top: 4px;
         }
 
+        .patient-info .gp-site {
+            color: #667eea;
+            font-size: 13px;
+            font-weight: 500;
+            margin-top: 4px;
+        }
+
+        .patient-info .reminder-info {
+            color: #f59e0b;
+            font-size: 12px;
+            margin-top: 2px;
+        }
+
         .patient-actions {
             display: flex;
             gap: 8px;
             flex-wrap: wrap;
+            align-items: center;
         }
 
         .btn-small {
@@ -197,6 +255,24 @@
 
         .btn-delete:hover {
             background: #fecaca;
+        }
+
+        .btn-referral {
+            background: #dbeafe;
+            color: #2563eb;
+        }
+
+        .btn-referral:hover {
+            background: #bfdbfe;
+        }
+
+        .btn-complete {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-complete:hover {
+            background: #5a67d8;
         }
 
         .empty-state {
@@ -244,6 +320,83 @@
 
         .goals-preview li {
             margin-bottom: 4px;
+        }
+
+        /* Green tick animation */
+        .green-tick-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .green-tick-overlay.active {
+            display: flex;
+        }
+
+        .green-tick-container {
+            text-align: center;
+            animation: tickFadeIn 0.5s ease-out;
+        }
+
+        .green-tick-circle {
+            width: 150px;
+            height: 150px;
+            background: #10b981;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 24px;
+            animation: tickPop 0.6s ease-out;
+        }
+
+        .green-tick-circle svg {
+            width: 80px;
+            height: 80px;
+            fill: white;
+        }
+
+        .green-tick-text {
+            color: white;
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        @keyframes tickPop {
+            0% { transform: scale(0); }
+            60% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+
+        @keyframes tickFadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        /* Closed loop badge */
+        .closed-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: #d1fae5;
+            color: #059669;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .closed-badge svg {
+            width: 14px;
+            height: 14px;
+            fill: #059669;
         }
 
         /* Modal */
@@ -313,6 +466,38 @@
             justify-content: flex-end;
         }
 
+        /* Referral modal */
+        .referral-select {
+            margin-bottom: 16px;
+        }
+
+        .referral-select label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: #374151;
+        }
+
+        .referral-select select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 15px;
+        }
+
+        .referral-letter-output {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 20px;
+            font-size: 14px;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+            line-height: 1.6;
+        }
+
         .refresh-btn {
             background: none;
             border: 1px solid #e5e7eb;
@@ -331,11 +516,25 @@
 <body>
     <div class="container">
         <div class="dashboard-header">
-            <h1>Care Plan Dashboard <span class="version-badge">v2.2</span></h1>
+            <h1>Care Plan Dashboard <span class="version-badge">v3.0</span></h1>
             <div class="nav-links">
                 <a href="index.html">New Patient</a>
                 <button class="refresh-btn" onclick="loadData()">Refresh</button>
             </div>
+        </div>
+
+        <!-- Filter Bar -->
+        <div class="filter-bar">
+            <label>Filter by:</label>
+            <select id="filterGP" onchange="applyFilters()">
+                <option value="">All GPs</option>
+            </select>
+            <select id="filterSite" onchange="applyFilters()">
+                <option value="">All Sites</option>
+                <option value="Crace">Crace</option>
+                <option value="Denman">Denman</option>
+                <option value="Lyneham">Lyneham</option>
+            </select>
         </div>
 
         <div class="stats-row">
@@ -344,18 +543,23 @@
                 <div class="number" id="awaitingCount">-</div>
             </div>
             <div class="stat-card ready">
-                <h3>Ready for Care Plan</h3>
+                <h3>Ready for Review</h3>
                 <div class="number" id="readyCount">-</div>
             </div>
             <div class="stat-card completed">
-                <h3>Completed</h3>
+                <h3>Pending Consult</h3>
                 <div class="number" id="completedCount">-</div>
+            </div>
+            <div class="stat-card closed">
+                <h3>Completed</h3>
+                <div class="number" id="closedCount">-</div>
             </div>
         </div>
 
-        <div class="section ready">
-            <h2>Ready for Care Plan <span class="badge" id="readyBadge">0</span></h2>
-            <div id="readyList" class="patient-list">
+        <!-- Pending Consultation (care plan generated, not yet marked complete) -->
+        <div class="section completed">
+            <h2>Pending Consultation <span class="badge" id="completedBadge">0</span></h2>
+            <div id="completedList" class="patient-list">
                 <div class="loading">Loading...</div>
             </div>
         </div>
@@ -367,9 +571,16 @@
             </div>
         </div>
 
-        <div class="section">
-            <h2>Recently Completed <span class="badge" id="completedBadge">0</span></h2>
-            <div id="completedList" class="patient-list">
+        <div class="section ready">
+            <h2>Ready for Care Plan <span class="badge" id="readyBadge">0</span></h2>
+            <div id="readyList" class="patient-list">
+                <div class="loading">Loading...</div>
+            </div>
+        </div>
+
+        <div class="section closed">
+            <h2>Completed (Loop Closed) <span class="badge" id="closedBadge">0</span></h2>
+            <div id="closedList" class="patient-list">
                 <div class="loading">Loading...</div>
             </div>
         </div>
@@ -380,13 +591,56 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h2>Generated Care Plan</h2>
-                <button class="modal-close" onclick="closeModal()">&times;</button>
+                <button class="modal-close" onclick="closeModal('carePlanModal')">&times;</button>
             </div>
             <div id="carePlanContent" class="care-plan-output"></div>
             <div class="modal-actions">
-                <button class="btn-small btn-view" onclick="closeModal()">Close</button>
+                <button class="btn-small btn-view" onclick="closeModal('carePlanModal')">Close</button>
                 <button class="btn-small btn-generate" onclick="copyCarePlan()">Copy to Clipboard</button>
             </div>
+        </div>
+    </div>
+
+    <!-- Referral Letter Modal -->
+    <div id="referralModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Allied Health Referral Letter</h2>
+                <button class="modal-close" onclick="closeModal('referralModal')">&times;</button>
+            </div>
+            <div class="referral-select">
+                <label>Select Provider Type:</label>
+                <select id="referralProviderType">
+                    <option value="">Choose provider...</option>
+                    <option value="Physiotherapist">Physiotherapist</option>
+                    <option value="Dietitian">Dietitian</option>
+                    <option value="Podiatrist">Podiatrist</option>
+                    <option value="Psychologist">Psychologist</option>
+                    <option value="Exercise Physiologist">Exercise Physiologist</option>
+                    <option value="Diabetes Educator">Diabetes Educator</option>
+                    <option value="Occupational Therapist">Occupational Therapist</option>
+                    <option value="Speech Pathologist">Speech Pathologist</option>
+                    <option value="Mental Health Social Worker">Mental Health Social Worker</option>
+                </select>
+            </div>
+            <button class="btn-small btn-referral" id="generateReferralBtn" onclick="generateReferralLetter()" style="margin-bottom: 16px;">Generate Referral Letter</button>
+            <div id="referralLetterContent" class="referral-letter-output" style="display: none;"></div>
+            <div id="referralActions" class="modal-actions" style="display: none;">
+                <button class="btn-small btn-view" onclick="closeModal('referralModal')">Close</button>
+                <button class="btn-small btn-generate" onclick="copyReferralLetter()">Copy to Clipboard</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Green Tick Overlay -->
+    <div id="greenTickOverlay" class="green-tick-overlay">
+        <div class="green-tick-container">
+            <div class="green-tick-circle">
+                <svg viewBox="0 0 24 24">
+                    <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                </svg>
+            </div>
+            <div class="green-tick-text">Consultation Complete!</div>
         </div>
     </div>
 
@@ -397,7 +651,10 @@
         };
 
         let currentCarePlan = '';
-        let carePlanTexts = {}; // Store care plan texts by patient UUID
+        let currentReferralLetter = '';
+        let currentReferralPatientUuid = '';
+        let carePlanTexts = {};
+        let allData = null; // Store all data for filtering
 
         async function loadData() {
             try {
@@ -416,31 +673,83 @@
                     throw new Error(data.error || 'Failed to load data');
                 }
 
-                // Update counts
-                document.getElementById('awaitingCount').textContent = data.totals.awaiting;
-                document.getElementById('readyCount').textContent = data.totals.ready;
-                document.getElementById('completedCount').textContent = data.totals.completed;
+                allData = data;
 
-                document.getElementById('awaitingBadge').textContent = data.totals.awaiting;
-                document.getElementById('readyBadge').textContent = data.totals.ready;
-                document.getElementById('completedBadge').textContent = data.totals.completed;
+                // Populate GP filter dropdown
+                populateGPFilter(data);
 
-                // Store care plan texts for completed patients
-                carePlanTexts = {};
-                for (const patient of data.completed) {
-                    if (patient.submission?.carePlanText) {
-                        carePlanTexts[patient.uuid] = patient.submission.carePlanText;
-                    }
-                }
-
-                // Render lists
-                renderPatientList('readyList', data.ready, 'ready');
-                renderPatientList('awaitingList', data.awaiting, 'awaiting');
-                renderPatientList('completedList', data.completed.slice(0, 10), 'completed');
+                // Apply current filters
+                applyFilters();
 
             } catch (error) {
                 console.error('Error loading data:', error);
             }
+        }
+
+        function populateGPFilter(data) {
+            const gpSet = new Set();
+            const allPatients = [...(data.awaiting || []), ...(data.ready || []), ...(data.completed || []), ...(data.closed || [])];
+            for (const p of allPatients) {
+                if (p.gpName) gpSet.add(p.gpName);
+            }
+
+            const select = document.getElementById('filterGP');
+            const currentValue = select.value;
+            select.innerHTML = '<option value="">All GPs</option>';
+            for (const gp of [...gpSet].sort()) {
+                const option = document.createElement('option');
+                option.value = gp;
+                option.textContent = gp;
+                select.appendChild(option);
+            }
+            select.value = currentValue; // Preserve selection
+        }
+
+        function applyFilters() {
+            if (!allData) return;
+
+            const gpFilter = document.getElementById('filterGP').value;
+            const siteFilter = document.getElementById('filterSite').value;
+
+            function filterPatients(patients) {
+                return patients.filter(p => {
+                    if (gpFilter && p.gpName !== gpFilter) return false;
+                    if (siteFilter && p.site !== siteFilter) return false;
+                    return true;
+                });
+            }
+
+            const filtered = {
+                awaiting: filterPatients(allData.awaiting || []),
+                ready: filterPatients(allData.ready || []),
+                completed: filterPatients(allData.completed || []),
+                closed: filterPatients(allData.closed || []),
+            };
+
+            // Update counts
+            document.getElementById('awaitingCount').textContent = filtered.awaiting.length;
+            document.getElementById('readyCount').textContent = filtered.ready.length;
+            document.getElementById('completedCount').textContent = filtered.completed.length;
+            document.getElementById('closedCount').textContent = filtered.closed.length;
+
+            document.getElementById('awaitingBadge').textContent = filtered.awaiting.length;
+            document.getElementById('readyBadge').textContent = filtered.ready.length;
+            document.getElementById('completedBadge').textContent = filtered.completed.length;
+            document.getElementById('closedBadge').textContent = filtered.closed.length;
+
+            // Store care plan texts
+            carePlanTexts = {};
+            for (const patient of [...filtered.completed, ...filtered.closed]) {
+                if (patient.submission?.carePlanText) {
+                    carePlanTexts[patient.uuid] = patient.submission.carePlanText;
+                }
+            }
+
+            // Render lists
+            renderPatientList('completedList', filtered.completed, 'completed');
+            renderPatientList('awaitingList', filtered.awaiting, 'awaiting');
+            renderPatientList('readyList', filtered.ready, 'ready');
+            renderPatientList('closedList', filtered.closed.slice(0, 20), 'closed');
         }
 
         function renderPatientList(containerId, patients, type) {
@@ -466,10 +775,24 @@
                     minute: '2-digit'
                 });
 
+                const gpSiteInfo = [patient.gpName, patient.site].filter(Boolean).join(' | ');
+
                 let actions = '';
                 let goalsPreview = '';
 
-                if (type === 'ready') {
+                if (type === 'completed') {
+                    // Care plan generated, pending consultation
+                    const emailStatus = patient.submission?.carePlanEmailSent
+                        ? '<span style="color: #10b981; font-size: 12px;">Care plan emailed</span>'
+                        : '<span style="color: #f59e0b; font-size: 12px;">Care plan email pending</span>';
+
+                    actions = `
+                        <button class="btn-small btn-view" onclick="viewCarePlan('${patient.uuid}')">View Care Plan</button>
+                        <button class="btn-small btn-referral" onclick="openReferralModal('${patient.uuid}')">Referral Letter</button>
+                        <button class="btn-small btn-complete" onclick="markComplete('${patient.uuid}')">Mark Complete</button>
+                        ${emailStatus}
+                    `;
+                } else if (type === 'ready') {
                     actions = `
                         <button class="btn-small btn-view" onclick="toggleGoals('${patient.uuid}')">View Goals</button>
                         <button class="btn-small btn-generate" onclick="generateCarePlan('${patient.uuid}')">Generate Care Plan</button>
@@ -485,18 +808,25 @@
                             </div>
                         `;
                     }
-                } else if (type === 'completed') {
-                    const completedDate = patient.submission?.carePlanGeneratedAt
-                        ? new Date(patient.submission.carePlanGeneratedAt).toLocaleDateString('en-AU')
+                } else if (type === 'closed') {
+                    const completedDate = patient.submission?.consultationCompletedAt
+                        ? new Date(patient.submission.consultationCompletedAt).toLocaleDateString('en-AU')
                         : '';
-                    const hasCarePlan = patient.submission?.carePlanText ? 'true' : 'false';
                     actions = `
-                        <button class="btn-small btn-view" onclick="viewCarePlan('${patient.uuid}')" data-has-plan="${hasCarePlan}" data-uuid="${patient.uuid}">View Care Plan</button>
-                        <span style="color: #9ca3af; font-size: 13px; margin-left: 8px;">Completed ${completedDate}</span>
+                        <button class="btn-small btn-view" onclick="viewCarePlan('${patient.uuid}')">View Care Plan</button>
+                        <span class="closed-badge">
+                            <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                            Completed ${completedDate}
+                        </span>
                     `;
                 } else {
+                    // Awaiting
+                    const reminderInfo = patient.reminderCount > 0
+                        ? `<span style="color: #f59e0b; font-size: 12px;">${patient.reminderCount} reminder(s) sent</span>`
+                        : '';
                     actions = `
                         <span style="color: #f59e0b; font-size: 13px;">Waiting for patient...</span>
+                        ${reminderInfo}
                         <button class="btn-small btn-delete" onclick="deletePatient('${patient.uuid}')">Delete</button>
                     `;
                 }
@@ -505,6 +835,7 @@
                     <div class="patient-card">
                         <div class="patient-info">
                             <h4>Patient ID: ${patient.patientId}</h4>
+                            ${gpSiteInfo ? `<div class="gp-site">${gpSiteInfo}</div>` : ''}
                             <div class="conditions">${conditions}</div>
                             <div class="date">Created: ${date}</div>
                         </div>
@@ -564,7 +895,6 @@
                 document.getElementById('carePlanContent').textContent = data.carePlan;
                 document.getElementById('carePlanModal').classList.add('active');
 
-                // Reload data to update status
                 loadData();
 
             } catch (error) {
@@ -574,8 +904,19 @@
             }
         }
 
-        function closeModal() {
-            document.getElementById('carePlanModal').classList.remove('active');
+        function viewCarePlan(patientUuid) {
+            const carePlanText = carePlanTexts[patientUuid];
+            if (!carePlanText) {
+                alert('Care plan text not available.');
+                return;
+            }
+            currentCarePlan = carePlanText;
+            document.getElementById('carePlanContent').textContent = carePlanText;
+            document.getElementById('carePlanModal').classList.add('active');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
         }
 
         async function copyCarePlan() {
@@ -583,7 +924,6 @@
                 await navigator.clipboard.writeText(currentCarePlan);
                 alert('Care plan copied to clipboard!');
             } catch (error) {
-                // Fallback
                 const textarea = document.createElement('textarea');
                 textarea.value = currentCarePlan;
                 document.body.appendChild(textarea);
@@ -594,15 +934,123 @@
             }
         }
 
-        function viewCarePlan(patientUuid) {
-            const carePlanText = carePlanTexts[patientUuid];
-            if (!carePlanText) {
-                alert('Care plan text not available. This may be a care plan generated before this feature was added.');
+        // Referral letter functions
+        function openReferralModal(patientUuid) {
+            currentReferralPatientUuid = patientUuid;
+            currentReferralLetter = '';
+            document.getElementById('referralProviderType').value = '';
+            document.getElementById('referralLetterContent').style.display = 'none';
+            document.getElementById('referralLetterContent').textContent = '';
+            document.getElementById('referralActions').style.display = 'none';
+            document.getElementById('generateReferralBtn').disabled = false;
+            document.getElementById('generateReferralBtn').textContent = 'Generate Referral Letter';
+            document.getElementById('referralModal').classList.add('active');
+        }
+
+        async function generateReferralLetter() {
+            const providerType = document.getElementById('referralProviderType').value;
+            if (!providerType) {
+                alert('Please select a provider type');
                 return;
             }
-            currentCarePlan = carePlanText;
-            document.getElementById('carePlanContent').textContent = carePlanText;
-            document.getElementById('carePlanModal').classList.add('active');
+
+            const btn = document.getElementById('generateReferralBtn');
+            btn.disabled = true;
+            btn.textContent = 'Generating...';
+
+            try {
+                const response = await fetch(
+                    `${CONFIG.SUPABASE_URL}/functions/v1/generate-referral-letter`,
+                    {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${CONFIG.SUPABASE_ANON_KEY}`
+                        },
+                        body: JSON.stringify({
+                            patientUuid: currentReferralPatientUuid,
+                            providerType
+                        })
+                    }
+                );
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to generate referral letter');
+                }
+
+                currentReferralLetter = data.referralLetter;
+                document.getElementById('referralLetterContent').textContent = data.referralLetter;
+                document.getElementById('referralLetterContent').style.display = 'block';
+                document.getElementById('referralActions').style.display = 'flex';
+                btn.textContent = 'Regenerate';
+                btn.disabled = false;
+
+            } catch (error) {
+                alert('Error generating referral letter: ' + error.message);
+                btn.disabled = false;
+                btn.textContent = 'Generate Referral Letter';
+            }
+        }
+
+        async function copyReferralLetter() {
+            try {
+                await navigator.clipboard.writeText(currentReferralLetter);
+                alert('Referral letter copied to clipboard!');
+            } catch (error) {
+                const textarea = document.createElement('textarea');
+                textarea.value = currentReferralLetter;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                alert('Referral letter copied to clipboard!');
+            }
+        }
+
+        // Mark consultation complete
+        async function markComplete(patientUuid) {
+            if (!confirm('Mark this consultation as complete? (Item 965 claimed)')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(
+                    `${CONFIG.SUPABASE_URL}/functions/v1/mark-complete`,
+                    {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${CONFIG.SUPABASE_ANON_KEY}`
+                        },
+                        body: JSON.stringify({ patientUuid })
+                    }
+                );
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to mark as complete');
+                }
+
+                // Show big green tick
+                showGreenTick();
+
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+
+        function showGreenTick() {
+            const overlay = document.getElementById('greenTickOverlay');
+            overlay.classList.add('active');
+
+            // Auto-dismiss after 2.5 seconds and reload data
+            setTimeout(() => {
+                overlay.classList.remove('active');
+                loadData();
+            }, 2500);
         }
 
         async function deletePatient(patientUuid) {
@@ -628,7 +1076,6 @@
                     throw new Error(data.error || 'Failed to delete patient');
                 }
 
-                // Reload data to refresh the list
                 loadData();
 
             } catch (error) {
@@ -636,9 +1083,13 @@
             }
         }
 
-        // Close modal on escape key
+        // Close modals on escape key
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') closeModal();
+            if (e.key === 'Escape') {
+                closeModal('carePlanModal');
+                closeModal('referralModal');
+                document.getElementById('greenTickOverlay').classList.remove('active');
+            }
         });
 
         // Load data on page load

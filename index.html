@@ -225,7 +225,7 @@
                     <h1>YourGP Care Plan Generator</h1>
                     <p class="subtitle">Medicare-compliant GPCCMP (Item 965) generation tool</p>
                 </div>
-                <span class="version-badge">v2.2</span>
+                <span class="version-badge">v3.0</span>
             </div>
             <a href="dashboard.html" class="dashboard-link">View Dashboard &rarr;</a>
         </header>
@@ -256,6 +256,21 @@
                         <div class="form-group">
                             <label for="patientEmail">Patient Email</label>
                             <input type="email" id="patientEmail" placeholder="patient@email.com">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="gpName">GP Name (optional - auto-detected from summary)</label>
+                            <input type="text" id="gpName" placeholder="e.g., Dr Smith">
+                        </div>
+                        <div class="form-group">
+                            <label for="siteSelect">Site</label>
+                            <select id="siteSelect" style="width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 15px;">
+                                <option value="">Auto-detect from summary</option>
+                                <option value="Crace">Crace</option>
+                                <option value="Denman">Denman Prospect</option>
+                                <option value="Lyneham">Lyneham</option>
+                            </select>
                         </div>
                     </div>
 
@@ -362,7 +377,7 @@ Example content:
                 <strong>Important:</strong> This tool assists with care plan documentation.
                 All care plans must be reviewed and approved by the treating GP before use.
             </p>
-            <p class="version">v2.2 | Medicare Item 965 Compliant | RACGP Guidelines 2024-2025</p>
+            <p class="version">v3.0 | Medicare Item 965 Compliant | RACGP Guidelines 2024-2025</p>
         </footer>
     </div>
 
@@ -444,7 +459,9 @@ Example content:
                             healthSummary,
                             conditions: questionsData.detectedConditions,
                             questions: questionsData.questions,
-                            patientEmail
+                            patientEmail,
+                            gpName: document.getElementById('gpName').value.trim() || null,
+                            site: document.getElementById('siteSelect').value || null
                         })
                     }
                 );

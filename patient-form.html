@@ -304,12 +304,14 @@
                 </div>
                 <h2>Thank You!</h2>
                 <p>Your health goals have been submitted successfully.</p>
-                <p style="margin-top: 12px;">Your care team will use these to create a personalised care plan for you. You can close this page now.</p>
+                <p style="margin-top: 12px;">Your personalised care plan is being generated and will be emailed to you shortly.</p>
+                <p id="redirectMessage" style="margin-top: 16px; color: #667eea; font-weight: 500;">Redirecting you to book your telehealth appointment...</p>
+                <a id="bookingLink" href="#" style="display: inline-block; margin-top: 16px; padding: 14px 32px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 8px; text-decoration: none; font-weight: 600;">Book Your Telehealth Appointment</a>
             </div>
         </div>
 
         <div class="footer">
-            <p>YourGP Care Plan Programme | v2.3</p>
+            <p>YourGP Care Plan Programme | v3.0</p>
         </div>
     </div>
 
@@ -482,6 +484,18 @@
                 document.getElementById('formContent').style.display = 'none';
                 document.getElementById('pageHeader').style.display = 'none';
                 document.getElementById('successMessage').classList.add('active');
+
+                // Set up HotDoc booking redirect
+                if (data.hotdocUrl) {
+                    document.getElementById('bookingLink').href = data.hotdocUrl;
+                    // Auto-redirect after 3 seconds
+                    setTimeout(() => {
+                        window.location.href = data.hotdocUrl;
+                    }, 3000);
+                } else {
+                    document.getElementById('redirectMessage').style.display = 'none';
+                    document.getElementById('bookingLink').style.display = 'none';
+                }
 
             } catch (error) {
                 showError(error.message);
