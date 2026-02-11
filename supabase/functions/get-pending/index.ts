@@ -51,6 +51,27 @@ Deno.serve(async (req: Request) => {
       throw patientsError;
     }
 
+    // Fetch all referral letters grouped by patient
+    const { data: referralLetters } = await supabase
+      .from("referral_letters")
+      .select("id, patient_uuid, provider_type, letter_content, generated_by_gp, generated_at")
+      .order("generated_at", { ascending: false });
+
+    // Build a map of patient_uuid -> referral letters
+    const referralsByPatient: Record<string, any[]> = {};
+    for (const letter of referralLetters || []) {
+      if (!referralsByPatient[letter.patient_uuid]) {
+        referralsByPatient[letter.patient_uuid] = [];
+      }
+      referralsByPatient[letter.patient_uuid].push({
+        id: letter.id,
+        providerType: letter.provider_type,
+        letterContent: letter.letter_content,
+        generatedByGp: letter.generated_by_gp,
+        generatedAt: letter.generated_at,
+      });
+    }
+
     // Categorize patients
     const awaiting: any[] = [];      // Email sent, no submission yet
     const ready: any[] = [];          // Submission received, care plan not generated
@@ -70,6 +91,7 @@ Deno.serve(async (req: Request) => {
         site: patient.site,
         reminderCount: patient.reminder_count,
         lastReminderSentAt: patient.last_reminder_sent_at,
+        referralLetters: referralsByPatient[patient.id] || [],
         submission: submission ? {
           goals: submission.goals,
           submittedAt: submission.submitted_at,

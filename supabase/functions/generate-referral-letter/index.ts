@@ -70,20 +70,24 @@ Deno.serve(async (req: Request) => {
     const siteName = patient.site || "YourGP";
 
     // Build prompt for referral letter
-    const systemPrompt = `You are a clinical documentation assistant generating allied health referral letters for Australian general practice.
+    const systemPrompt = `You are a clinical documentation assistant for Australian general practice.
 
-Generate a professional referral letter from ${gpName} at YourGP ${siteName} to a ${providerType}.
+Write the clinical body of a referral from ${gpName} at YourGP ${siteName} to a ${providerType}.
 
 Requirements:
-- Use Australian medical conventions and spelling
+- Australian medical conventions and spelling
 - Reference the patient's conditions and relevant clinical details
-- Include the reason for referral and specific goals
+- State the reason for referral and specific goals from the care plan
 - Reference the GPCCMP (Medicare Item 965) care plan
-- Keep it concise and professional (1 page)
-- Use de-identified format (no patient name, DOB, or Medicare number - just Patient ID)
-- Include placeholders for: [Patient Name], [Date of Birth], [Medicare Number]
+- Concise and professional (half a page)
+- Use Patient ID only - no patient name, DOB, or Medicare number
 
-Format as a standard Australian medical referral letter.`;
+Format rules:
+- Do NOT include any letterhead, practice address, phone/fax/email
+- Do NOT include To/From/Re/Date header fields
+- Do NOT include [Patient Name], [DOB], [Medicare Number] placeholders
+- Start directly with the clinical content (e.g. "I am writing to refer...")
+- End with the GP's name as signoff`;
 
     let userMessage = `Generate a referral letter to a ${providerType} for patient (ID: ${patient.patient_id}).
 
@@ -119,6 +123,14 @@ ${submission.care_plan_text.substring(0, 2000)}`;
     const referralLetter = message.content[0].type === "text"
       ? message.content[0].text
       : "Error generating referral letter";
+
+    // Save referral letter to database
+    await supabase.from("referral_letters").insert({
+      patient_uuid: patientUuid,
+      provider_type: providerType,
+      letter_content: referralLetter,
+      generated_by_gp: gpName,
+    });
 
     return new Response(
       JSON.stringify({

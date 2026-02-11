@@ -624,6 +624,10 @@
                 </select>
             </div>
             <button class="btn-small btn-referral" id="generateReferralBtn" onclick="generateReferralLetter()" style="margin-bottom: 16px;">Generate Referral Letter</button>
+            <div id="savedReferralsSection" style="display: none; margin-bottom: 16px; border-top: 1px solid #e2e8f0; padding-top: 12px;">
+                <h4 style="color: #4a5568; margin-bottom: 8px; font-size: 14px;">Previously Generated Referrals</h4>
+                <div id="savedReferralsList" style="max-height: 200px; overflow-y: auto;"></div>
+            </div>
             <div id="referralLetterContent" class="referral-letter-output" style="display: none;"></div>
             <div id="referralActions" class="modal-actions" style="display: none;">
                 <button class="btn-small btn-view" onclick="closeModal('referralModal')">Close</button>
@@ -786,9 +790,14 @@
                         ? '<span style="color: #10b981; font-size: 12px;">Care plan emailed</span>'
                         : '<span style="color: #f59e0b; font-size: 12px;">Care plan email pending</span>';
 
+                    const referralCount = (patient.referralLetters || []).length;
+                    const referralBadge = referralCount > 0
+                        ? `<span style="background: #dbeafe; color: #1e40af; font-size: 11px; padding: 2px 6px; border-radius: 10px; margin-left: 4px;">${referralCount} referral${referralCount > 1 ? 's' : ''}</span>`
+                        : '';
+
                     actions = `
                         <button class="btn-small btn-view" onclick="viewCarePlan('${patient.uuid}')">View Care Plan</button>
-                        <button class="btn-small btn-referral" onclick="openReferralModal('${patient.uuid}')">Referral Letter</button>
+                        <button class="btn-small btn-referral" onclick="openReferralModal('${patient.uuid}')">Referral Letter</button>${referralBadge}
                         <button class="btn-small btn-complete" onclick="markComplete('${patient.uuid}')">Mark Complete</button>
                         ${emailStatus}
                     `;
@@ -812,8 +821,13 @@
                     const completedDate = patient.submission?.consultationCompletedAt
                         ? new Date(patient.submission.consultationCompletedAt).toLocaleDateString('en-AU')
                         : '';
+                    const closedReferralCount = (patient.referralLetters || []).length;
+                    const closedReferralBadge = closedReferralCount > 0
+                        ? `<span style="background: #dbeafe; color: #1e40af; font-size: 11px; padding: 2px 6px; border-radius: 10px; margin-left: 4px;">${closedReferralCount} referral${closedReferralCount > 1 ? 's' : ''}</span>`
+                        : '';
                     actions = `
                         <button class="btn-small btn-view" onclick="viewCarePlan('${patient.uuid}')">View Care Plan</button>
+                        <button class="btn-small btn-referral" onclick="openReferralModal('${patient.uuid}')">Referral Letter</button>${closedReferralBadge}
                         <span class="closed-badge">
                             <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
                             Completed ${completedDate}
@@ -895,6 +909,34 @@
                 document.getElementById('carePlanContent').textContent = data.carePlan;
                 document.getElementById('carePlanModal').classList.add('active');
 
+                // Schedule care plan email to patient (1 hour delay)
+                try {
+                    const emailTime = new Date();
+                    emailTime.setHours(emailTime.getHours() + 1);
+
+                    await fetch(
+                        `${CONFIG.SUPABASE_URL}/rest/v1/scheduled_jobs`,
+                        {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${CONFIG.SUPABASE_ANON_KEY}`,
+                                'apikey': CONFIG.SUPABASE_ANON_KEY,
+                                'Prefer': 'return=minimal'
+                            },
+                            body: JSON.stringify({
+                                job_type: 'care_plan_email',
+                                patient_uuid: patientUuid,
+                                scheduled_for: emailTime.toISOString(),
+                                status: 'pending',
+                                max_attempts: 3
+                            })
+                        }
+                    );
+                } catch (emailErr) {
+                    console.error('Failed to schedule care plan email:', emailErr);
+                }
+
                 loadData();
 
             } catch (error) {
@@ -944,7 +986,42 @@
             document.getElementById('referralActions').style.display = 'none';
             document.getElementById('generateReferralBtn').disabled = false;
             document.getElementById('generateReferralBtn').textContent = 'Generate Referral Letter';
+
+            // Show saved referrals for this patient
+            const savedSection = document.getElementById('savedReferralsSection');
+            const savedList = document.getElementById('savedReferralsList');
+            const patient = findPatientByUuid(patientUuid);
+            const referrals = patient?.referralLetters || [];
+
+            if (referrals.length > 0) {
+                savedList.innerHTML = referrals.map(r => {
+                    const date = new Date(r.generatedAt).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' });
+                    return `<div style="padding: 6px 10px; margin-bottom: 4px; background: #f8fafc; border-radius: 6px; cursor: pointer; display: flex; justify-content: space-between; align-items: center;" onclick="showSavedReferral('${r.providerType}', \`${encodeURIComponent(r.letterContent)}\`)">
+                        <span style="font-size: 13px; color: #4a5568;">${r.providerType}</span>
+                        <span style="font-size: 11px; color: #9ca3af;">${date}</span>
+                    </div>`;
+                }).join('');
+                savedSection.style.display = 'block';
+            } else {
+                savedSection.style.display = 'none';
+            }
+
             document.getElementById('referralModal').classList.add('active');
+        }
+
+        function findPatientByUuid(uuid) {
+            if (!allData) return null;
+            const all = [...(allData.awaiting || []), ...(allData.ready || []), ...(allData.completed || []), ...(allData.closed || [])];
+            return all.find(p => p.uuid === uuid);
+        }
+
+        function showSavedReferral(providerType, encodedContent) {
+            currentReferralLetter = decodeURIComponent(encodedContent);
+            document.getElementById('referralProviderType').value = providerType;
+            document.getElementById('referralLetterContent').textContent = currentReferralLetter;
+            document.getElementById('referralLetterContent').style.display = 'block';
+            document.getElementById('referralActions').style.display = 'flex';
+            document.getElementById('generateReferralBtn').textContent = 'Regenerate';
         }
 
         async function generateReferralLetter() {
@@ -986,6 +1063,9 @@
                 document.getElementById('referralActions').style.display = 'flex';
                 btn.textContent = 'Regenerate';
                 btn.disabled = false;
+
+                // Refresh data so saved referrals list and badges update
+                loadData();
 
             } catch (error) {
                 alert('Error generating referral letter: ' + error.message);
