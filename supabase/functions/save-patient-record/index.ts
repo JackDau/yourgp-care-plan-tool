@@ -8,19 +8,23 @@ const corsHeaders = {
 };
 
 // Parse GP name from health summary
-// Looks for patterns like "Dr Smith", "Dr. Jane Smith", "GP: Dr Smith"
+// Matches "Doctor Name: John Deery" from Best Practice export format
 function parseGpName(healthSummary: string): string | null {
   const patterns = [
-    /(?:GP|Doctor|Treating Doctor|Usual Doctor|Practitioner)[\s:]*(?:Dr\.?\s+)?([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/i,
-    /Dr\.?\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/i,
+    // Best Practice export: "Doctor Name: John Deery"
+    /Doctor Name:\s*(.+)/i,
+    // Fallback: "GP: Dr Smith", "Treating Doctor: Dr Smith" (word boundary to avoid "YourGP")
+    /\b(?:GP|Treating Doctor|Usual Doctor|Practitioner)\b[\s:]*(?:Dr\.?\s+)?([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/i,
   ];
 
   for (const pattern of patterns) {
     const match = healthSummary.match(pattern);
     if (match) {
-      const name = match[1].trim();
-      // Return with "Dr " prefix for consistency
-      return `Dr ${name}`;
+      let name = match[1].trim();
+      if (!name.toLowerCase().startsWith("dr")) {
+        name = `Dr ${name}`;
+      }
+      return name;
     }
   }
 

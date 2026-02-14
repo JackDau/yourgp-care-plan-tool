@@ -320,7 +320,9 @@ The patient has provided their own health goals. These MUST be incorporated into
         }
       }
       userMessage += `
-Please integrate these patient-stated goals into the care plan, ensuring they are SMART (Specific, Measurable, Achievable, Relevant, Time-bound).`;
+Please integrate these patient-stated goals into the care plan, ensuring they are SMART (Specific, Measurable, Achievable, Relevant, Time-bound).
+
+If the patient has requested specific allied health referrals under "Allied Health Support", these MUST be prominently included in the "Allied Health Referrals" section and marked as "PATIENT REQUESTED" so the GP can action the referral letters.`;
     }
 
     userMessage += `

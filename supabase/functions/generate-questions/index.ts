@@ -165,6 +165,14 @@ Deno.serve(async (req: Request) => {
       }
     }
 
+    // Add allied health referral question (always included)
+    questions.push({
+      category: "Allied Health Support",
+      questions: [
+        "Would you like a referral to any allied health practitioners as part of your care plan? (e.g., Physiotherapist, Dietitian, Podiatrist, Psychologist, Exercise Physiologist, Diabetes Educator). If yes, please tell us which ones and why."
+      ]
+    });
+
     return new Response(
       JSON.stringify({
         questions,
