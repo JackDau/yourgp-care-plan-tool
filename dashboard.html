@@ -574,6 +574,11 @@
                 <option value="Denman">Denman</option>
                 <option value="Lyneham">Lyneham</option>
             </select>
+            <select id="filterAction" onchange="applyFilters()">
+                <option value="">All Patients</option>
+                <option value="initial">Ready for Initial Care Plan</option>
+                <option value="review">Ready for Review</option>
+            </select>
         </div>
 
         <div class="stats-row">
@@ -769,6 +774,7 @@
 
             const gpFilter = document.getElementById('filterGP').value;
             const siteFilter = document.getElementById('filterSite').value;
+            const actionFilter = document.getElementById('filterAction').value;
 
             function filterPatients(patients) {
                 return patients.filter(p => {
@@ -784,6 +790,13 @@
                 completed: filterPatients(allData.completed || []),
                 closed: filterPatients(allData.closed || []),
             };
+
+            // For "review" action filter, narrow completed/closed to only patients with pending review responses
+            if (actionFilter === 'review') {
+                const hasReviewResponses = p => (p.reviews || []).some(r => r.hasResponses);
+                filtered.completed = filtered.completed.filter(hasReviewResponses);
+                filtered.closed = filtered.closed.filter(hasReviewResponses);
+            }
 
             // Update counts
             document.getElementById('awaitingCount').textContent = filtered.awaiting.length;
@@ -809,6 +822,31 @@
             renderPatientList('awaitingList', filtered.awaiting, 'awaiting');
             renderPatientList('readyList', filtered.ready, 'ready');
             renderPatientList('closedList', filtered.closed.slice(0, 20), 'closed');
+
+            // Toggle section visibility based on action filter
+            const sections = {
+                ready: document.getElementById('readyList').closest('.section'),
+                completed: document.getElementById('completedList').closest('.section'),
+                awaiting: document.getElementById('awaitingList').closest('.section'),
+                closed: document.getElementById('closedList').closest('.section'),
+            };
+
+            if (actionFilter === 'initial') {
+                sections.ready.style.display = '';
+                sections.completed.style.display = 'none';
+                sections.awaiting.style.display = 'none';
+                sections.closed.style.display = 'none';
+            } else if (actionFilter === 'review') {
+                sections.ready.style.display = 'none';
+                sections.completed.style.display = '';
+                sections.awaiting.style.display = 'none';
+                sections.closed.style.display = '';
+            } else {
+                sections.ready.style.display = '';
+                sections.completed.style.display = '';
+                sections.awaiting.style.display = '';
+                sections.closed.style.display = '';
+            }
         }
 
         function renderPatientList(containerId, patients, type) {
