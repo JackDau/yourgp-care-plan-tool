@@ -27,7 +27,14 @@ Deno.serve(async (req: Request) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Delete patient (submissions will be deleted via CASCADE)
+    // Cancel any pending scheduled jobs for this patient
+    await supabase
+      .from("scheduled_jobs")
+      .update({ status: "cancelled" })
+      .eq("patient_uuid", patientUuid)
+      .eq("status", "pending");
+
+    // Delete patient (submissions, referral_letters cascade via FK)
     const { error } = await supabase
       .from("patients")
       .delete()

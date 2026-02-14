@@ -868,7 +868,7 @@
             return goals.map(section => {
                 const answers = Object.entries(section.answers || {})
                     .filter(([_, v]) => v)
-                    .map(([q, a]) => `<li><strong>${section.category}:</strong> ${a}</li>`)
+                    .map(([q, a]) => `<li><strong>${q}</strong><br>${a}</li>`)
                     .join('');
                 return answers;
             }).join('');
