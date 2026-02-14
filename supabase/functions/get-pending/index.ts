@@ -72,6 +72,28 @@ Deno.serve(async (req: Request) => {
       });
     }
 
+    // Fetch all reviews grouped by patient
+    const { data: reviews } = await supabase
+      .from("reviews")
+      .select("id, patient_uuid, review_number, review_questions, progress_responses, review_summary_text, submitted_at, created_at")
+      .order("created_at", { ascending: false });
+
+    const reviewsByPatient: Record<string, any[]> = {};
+    for (const review of reviews || []) {
+      if (!reviewsByPatient[review.patient_uuid]) {
+        reviewsByPatient[review.patient_uuid] = [];
+      }
+      reviewsByPatient[review.patient_uuid].push({
+        id: review.id,
+        reviewNumber: review.review_number,
+        hasResponses: !!review.submitted_at,
+        hasSummary: !!review.review_summary_text,
+        reviewSummaryText: review.review_summary_text,
+        submittedAt: review.submitted_at,
+        createdAt: review.created_at,
+      });
+    }
+
     // Categorize patients
     const awaiting: any[] = [];      // Email sent, no submission yet
     const ready: any[] = [];          // Submission received, care plan not generated
@@ -92,6 +114,7 @@ Deno.serve(async (req: Request) => {
         reminderCount: patient.reminder_count,
         lastReminderSentAt: patient.last_reminder_sent_at,
         referralLetters: referralsByPatient[patient.id] || [],
+        reviews: reviewsByPatient[patient.id] || [],
         submission: submission ? {
           goals: submission.goals,
           submittedAt: submission.submitted_at,

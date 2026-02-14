@@ -119,6 +119,30 @@
             color: #a0aec0;
         }
 
+        .original-goal-box {
+            background: #f0f4ff;
+            border: 1px solid #c7d2fe;
+            border-radius: 8px;
+            padding: 14px;
+            margin-bottom: 12px;
+        }
+
+        .original-goal-box .label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #667eea;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+        }
+
+        .original-goal-box .goal-text {
+            color: #374151;
+            font-size: 15px;
+            line-height: 1.5;
+            font-style: italic;
+        }
+
         .btn {
             display: inline-block;
             padding: 14px 32px;
@@ -271,18 +295,27 @@
             </div>
 
             <div id="formContent" style="display: none;">
-                <div class="intro-box" style="background: #f0fdf4; border-left-color: #22c55e;">
-                    <h3 style="color: #166534;">How to Complete This Form</h3>
-                    <ul style="color: #166534; margin: 0; padding-left: 20px; line-height: 1.8;">
-                        <li><strong>You only need to answer ONE question</strong> - whichever matters most to you</li>
-                        <li>Feel free to answer more if you'd like, but there's no pressure</li>
-                        <li>Skip any questions that don't feel relevant to you</li>
-                    </ul>
+                <div id="goalsIntro">
+                    <div class="intro-box" style="background: #f0fdf4; border-left-color: #22c55e;">
+                        <h3 style="color: #166534;">How to Complete This Form</h3>
+                        <ul style="color: #166534; margin: 0; padding-left: 20px; line-height: 1.8;">
+                            <li><strong>You only need to answer ONE question</strong> - whichever matters most to you</li>
+                            <li>Feel free to answer more if you'd like, but there's no pressure</li>
+                            <li>Skip any questions that don't feel relevant to you</li>
+                        </ul>
+                    </div>
+
+                    <div class="intro-box">
+                        <h3>What are SMART Goals?</h3>
+                        <p>SMART goals help you set clear, achievable health targets. Think about goals that are <strong>Specific</strong> (clear and defined), <strong>Measurable</strong> (you can track progress), <strong>Achievable</strong> (realistic for you), <strong>Relevant</strong> (important to your health), and <strong>Time-bound</strong> (have a timeframe).</p>
+                    </div>
                 </div>
 
-                <div class="intro-box">
-                    <h3>What are SMART Goals?</h3>
-                    <p>SMART goals help you set clear, achievable health targets. Think about goals that are <strong>Specific</strong> (clear and defined), <strong>Measurable</strong> (you can track progress), <strong>Achievable</strong> (realistic for you), <strong>Relevant</strong> (important to your health), and <strong>Time-bound</strong> (have a timeframe).</p>
+                <div id="reviewIntro" style="display: none;">
+                    <div class="intro-box" style="background: #f0fdf4; border-left-color: #22c55e;">
+                        <h3 style="color: #166534;">Your Care Plan Progress Review</h3>
+                        <p style="color: #166534; line-height: 1.8;">Below you'll see the health goals you set last time, along with a question about how you've been going. Let us know how you're tracking - there are no right or wrong answers. Your GP will use this to prepare for your upcoming review.</p>
+                    </div>
                 </div>
 
                 <div id="error" class="error-message"></div>
@@ -303,15 +336,15 @@
                     </svg>
                 </div>
                 <h2>Thank You!</h2>
-                <p>Your health goals have been submitted successfully.</p>
-                <p style="margin-top: 12px;">Your personalised care plan is being generated and will be emailed to you shortly.</p>
+                <p id="successText">Your health goals have been submitted successfully.</p>
+                <p id="successSubtext" style="margin-top: 12px;">Your personalised care plan is being generated and will be emailed to you shortly.</p>
                 <p id="redirectMessage" style="margin-top: 16px; color: #667eea; font-weight: 500;">Redirecting you to book your telehealth appointment...</p>
                 <a id="bookingLink" href="#" style="display: inline-block; margin-top: 16px; padding: 14px 32px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 8px; text-decoration: none; font-weight: 600;">Book Your Telehealth Appointment</a>
             </div>
         </div>
 
         <div class="footer">
-            <p>YourGP Care Plan Programme | v3.0</p>
+            <p>YourGP Care Plan Programme | v4.0</p>
         </div>
     </div>
 
@@ -322,21 +355,30 @@
         };
 
         let patientUuid = null;
+        let reviewUuid = null;
         let questionsData = null;
+        let isReviewMode = false;
+        let reviewData = null;
 
         async function init() {
-            // Get patient ID from URL
             const urlParams = new URLSearchParams(window.location.search);
             patientUuid = urlParams.get('id');
+            reviewUuid = urlParams.get('review');
 
-            if (!patientUuid) {
+            if (reviewUuid) {
+                isReviewMode = true;
+                await initReviewMode();
+            } else if (patientUuid) {
+                await initGoalsMode();
+            } else {
                 showError('Invalid link. Please use the link sent to your email.');
                 document.getElementById('loading').classList.remove('active');
-                return;
             }
+        }
 
+        // === GOALS MODE (original) ===
+        async function initGoalsMode() {
             try {
-                // Fetch patient questions
                 const response = await fetch(
                     `${CONFIG.SUPABASE_URL}/functions/v1/submit-goals?id=${patientUuid}`,
                     {
@@ -360,6 +402,61 @@
 
                 questionsData = data.questions;
                 renderQuestions(data.questions);
+
+                document.getElementById('loading').classList.remove('active');
+                document.getElementById('formContent').style.display = 'block';
+
+            } catch (error) {
+                showError(error.message);
+                document.getElementById('loading').classList.remove('active');
+            }
+        }
+
+        // === REVIEW MODE ===
+        async function initReviewMode() {
+            // Update page header for review mode
+            document.getElementById('pageHeader').innerHTML = `
+                <h1>Care Plan Progress Review</h1>
+                <p>Let us know how you've been going with your health goals. Your GP will use this to prepare for your upcoming review.</p>
+            `;
+            document.title = 'Care Plan Review - YourGP';
+
+            try {
+                const response = await fetch(
+                    `${CONFIG.SUPABASE_URL}/functions/v1/get-review-data?id=${reviewUuid}`,
+                    {
+                        headers: {
+                            'Authorization': `Bearer ${CONFIG.SUPABASE_ANON_KEY}`
+                        }
+                    }
+                );
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to load review');
+                }
+
+                if (data.alreadySubmitted) {
+                    document.getElementById('loading').classList.remove('active');
+                    document.getElementById('alreadySubmitted').innerHTML = `
+                        <h2>Already Submitted</h2>
+                        <p>You have already submitted your progress review. Your GP will review your responses at your upcoming consultation.</p>
+                        <p style="margin-top: 16px; color: #9ca3af;">If you need to make changes, please contact the practice.</p>
+                    `;
+                    document.getElementById('alreadySubmitted').style.display = 'block';
+                    return;
+                }
+
+                reviewData = data;
+                renderReviewQuestions(data.reviewQuestions);
+
+                // Show review intro, hide goals intro
+                document.getElementById('goalsIntro').style.display = 'none';
+                document.getElementById('reviewIntro').style.display = 'block';
+
+                // Update submit button
+                document.getElementById('submitBtn').textContent = 'Submit My Progress Update';
 
                 document.getElementById('loading').classList.remove('active');
                 document.getElementById('formContent').style.display = 'block';
@@ -405,6 +502,35 @@
             });
         }
 
+        function renderReviewQuestions(reviewQuestions) {
+            const container = document.getElementById('questionsContainer');
+            container.innerHTML = '';
+
+            reviewQuestions.forEach((item, index) => {
+                const questionDiv = document.createElement('div');
+                questionDiv.className = 'question-section';
+
+                questionDiv.innerHTML = `
+                    <div class="original-goal-box">
+                        <div class="label">Your original goal</div>
+                        <div class="goal-text">"${item.originalGoal}"</div>
+                    </div>
+                    <div class="question-group">
+                        <label for="review_${index}">${item.progressQuestion}</label>
+                        <textarea
+                            id="review_${index}"
+                            name="review_${index}"
+                            data-index="${index}"
+                            placeholder="Tell us how you've been going..."
+                            rows="3"
+                        ></textarea>
+                    </div>
+                `;
+
+                container.appendChild(questionDiv);
+            });
+        }
+
         function showError(message) {
             const errorEl = document.getElementById('error');
             errorEl.textContent = message;
@@ -419,16 +545,22 @@
             e.preventDefault();
             hideError();
 
+            if (isReviewMode) {
+                await handleReviewSubmit();
+            } else {
+                await handleGoalsSubmit();
+            }
+        }
+
+        async function handleGoalsSubmit() {
             const submitBtn = document.getElementById('submitBtn');
             submitBtn.disabled = true;
             submitBtn.textContent = 'Submitting...';
 
             try {
-                // Collect answers grouped by section
                 const goals = [];
                 const textareas = document.querySelectorAll('#questionsContainer textarea');
 
-                // Group by section
                 const sections = {};
                 textareas.forEach(textarea => {
                     const sectionIndex = textarea.dataset.section;
@@ -447,7 +579,6 @@
                     }
                 });
 
-                // Convert to array
                 for (const section of Object.values(sections)) {
                     if (Object.keys(section.answers).length > 0) {
                         goals.push(section);
@@ -458,7 +589,6 @@
                     throw new Error('Please answer at least one question before submitting.');
                 }
 
-                // Submit goals
                 const response = await fetch(
                     `${CONFIG.SUPABASE_URL}/functions/v1/submit-goals`,
                     {
@@ -480,15 +610,12 @@
                     throw new Error(data.error || 'Failed to submit goals');
                 }
 
-                // Show success
                 document.getElementById('formContent').style.display = 'none';
                 document.getElementById('pageHeader').style.display = 'none';
                 document.getElementById('successMessage').classList.add('active');
 
-                // Set up HotDoc booking redirect
                 if (data.hotdocUrl) {
                     document.getElementById('bookingLink').href = data.hotdocUrl;
-                    // Auto-redirect after 3 seconds
                     setTimeout(() => {
                         window.location.href = data.hotdocUrl;
                     }, 3000);
@@ -501,6 +628,65 @@
                 showError(error.message);
                 submitBtn.disabled = false;
                 submitBtn.textContent = 'Submit My Health Goals';
+            }
+        }
+
+        async function handleReviewSubmit() {
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Submitting your progress...';
+
+            try {
+                // Collect review answers
+                const progressResponses = [];
+                const textareas = document.querySelectorAll('#questionsContainer textarea');
+
+                let hasAnswer = false;
+                textareas.forEach(textarea => {
+                    const index = parseInt(textarea.dataset.index);
+                    const answer = textarea.value.trim();
+                    progressResponses[index] = { answer: answer || '' };
+                    if (answer) hasAnswer = true;
+                });
+
+                if (!hasAnswer) {
+                    throw new Error('Please answer at least one question before submitting.');
+                }
+
+                const response = await fetch(
+                    `${CONFIG.SUPABASE_URL}/functions/v1/submit-review`,
+                    {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${CONFIG.SUPABASE_ANON_KEY}`
+                        },
+                        body: JSON.stringify({
+                            reviewUuid,
+                            progressResponses
+                        })
+                    }
+                );
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to submit review');
+                }
+
+                // Show review-specific success message
+                document.getElementById('formContent').style.display = 'none';
+                document.getElementById('pageHeader').style.display = 'none';
+                document.getElementById('successText').textContent = 'Your progress update has been submitted successfully.';
+                document.getElementById('successSubtext').textContent = 'Your GP will review your responses and discuss them with you at your upcoming care plan review.';
+                document.getElementById('redirectMessage').style.display = 'none';
+                document.getElementById('bookingLink').style.display = 'none';
+                document.getElementById('successMessage').classList.add('active');
+
+            } catch (error) {
+                showError(error.message);
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Submit My Progress Update';
             }
         }
 

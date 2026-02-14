@@ -511,12 +511,47 @@
         .refresh-btn:hover {
             background: #f3f4f6;
         }
+
+        .btn-review {
+            background: #fef3c7;
+            color: #92400e;
+            border: 1px solid #fde68a;
+        }
+
+        .btn-review:hover {
+            background: #fde68a;
+        }
+
+        .review-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-weight: 600;
+        }
+
+        .review-badge.sent {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .review-badge.received {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .review-badge.count {
+            background: #e0e7ff;
+            color: #3730a3;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="dashboard-header">
-            <h1>Care Plan Dashboard <span class="version-badge">v3.0</span></h1>
+            <h1>Care Plan Dashboard <span class="version-badge">v4.0</span></h1>
             <div class="nav-links">
                 <a href="index.html">New Patient</a>
                 <button class="refresh-btn" onclick="loadData()">Refresh</button>
@@ -632,6 +667,21 @@
             <div id="referralActions" class="modal-actions" style="display: none;">
                 <button class="btn-small btn-view" onclick="closeModal('referralModal')">Close</button>
                 <button class="btn-small btn-generate" onclick="copyReferralLetter()">Copy to Clipboard</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Review Summary Modal -->
+    <div id="reviewModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="reviewModalTitle">Care Plan Review Summary</h2>
+                <button class="modal-close" onclick="closeModal('reviewModal')">&times;</button>
+            </div>
+            <div id="reviewSummaryContent" class="care-plan-output"></div>
+            <div class="modal-actions">
+                <button class="btn-small btn-view" onclick="closeModal('reviewModal')">Close</button>
+                <button class="btn-small btn-generate" onclick="copyReviewSummary()">Copy to Clipboard</button>
             </div>
         </div>
     </div>
@@ -800,6 +850,7 @@
                         <button class="btn-small btn-referral" onclick="openReferralModal('${patient.uuid}')">Referral Letter</button>${referralBadge}
                         <button class="btn-small btn-complete" onclick="markComplete('${patient.uuid}')">Mark Complete</button>
                         ${emailStatus}
+                        ${getReviewActions(patient)}
                     `;
                 } else if (type === 'ready') {
                     actions = `
@@ -832,6 +883,7 @@
                             <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
                             Completed ${completedDate}
                         </span>
+                        ${getReviewActions(patient)}
                     `;
                 } else {
                     // Awaiting
@@ -1163,11 +1215,117 @@
             }
         }
 
+        // Review functions
+        let currentReviewSummary = '';
+
+        function getReviewActions(patient) {
+            const reviews = patient.reviews || [];
+            const latestReview = reviews[0]; // sorted desc by created_at
+            let html = '';
+
+            // Review count badge
+            if (reviews.length > 0) {
+                html += `<span class="review-badge count">${reviews.length} review${reviews.length > 1 ? 's' : ''}</span>`;
+            }
+
+            // Latest review status
+            if (latestReview) {
+                if (latestReview.hasSummary) {
+                    html += `<button class="btn-small btn-view" onclick="viewReviewSummary('${patient.uuid}')">View Review</button>`;
+                } else if (latestReview.hasResponses) {
+                    html += `<span class="review-badge received">Review received</span>`;
+                } else {
+                    html += `<span class="review-badge sent">Review sent</span>`;
+                }
+            }
+
+            // Send Review button - show if no pending review (all reviews have responses or no reviews exist)
+            const hasPendingReview = latestReview && !latestReview.hasResponses;
+            if (!hasPendingReview) {
+                html += `<button class="btn-small btn-review" onclick="sendReview('${patient.uuid}')">Send Review</button>`;
+            }
+
+            return html;
+        }
+
+        async function sendReview(patientUuid) {
+            if (!confirm('Send a quarterly review questionnaire to this patient?')) {
+                return;
+            }
+
+            const btn = event.target;
+            btn.disabled = true;
+            btn.textContent = 'Sending...';
+
+            try {
+                const response = await fetch(
+                    `${CONFIG.SUPABASE_URL}/functions/v1/initiate-review`,
+                    {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${CONFIG.SUPABASE_ANON_KEY}`
+                        },
+                        body: JSON.stringify({ patientUuid })
+                    }
+                );
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to send review');
+                }
+
+                alert(`Review questionnaire sent! (${data.questionsGenerated} questions generated)`);
+                loadData();
+
+            } catch (error) {
+                alert('Error sending review: ' + error.message);
+                btn.disabled = false;
+                btn.textContent = 'Send Review';
+            }
+        }
+
+        function viewReviewSummary(patientUuid) {
+            const patient = findPatientByUuid(patientUuid);
+            if (!patient) return;
+
+            const reviews = patient.reviews || [];
+            // Find latest review with a summary
+            const reviewWithSummary = reviews.find(r => r.reviewSummaryText);
+
+            if (!reviewWithSummary) {
+                alert('No review summary available yet.');
+                return;
+            }
+
+            currentReviewSummary = reviewWithSummary.reviewSummaryText;
+            document.getElementById('reviewModalTitle').textContent = `Care Plan Review #${reviewWithSummary.reviewNumber}`;
+            document.getElementById('reviewSummaryContent').textContent = reviewWithSummary.reviewSummaryText;
+            document.getElementById('reviewModal').classList.add('active');
+        }
+
+        async function copyReviewSummary() {
+            try {
+                await navigator.clipboard.writeText(currentReviewSummary);
+                alert('Review summary copied to clipboard!');
+            } catch (error) {
+                const textarea = document.createElement('textarea');
+                textarea.value = currentReviewSummary;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                alert('Review summary copied to clipboard!');
+            }
+        }
+
         // Close modals on escape key
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
                 closeModal('carePlanModal');
                 closeModal('referralModal');
+                closeModal('reviewModal');
                 document.getElementById('greenTickOverlay').classList.remove('active');
             }
         });
