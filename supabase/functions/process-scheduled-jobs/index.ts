@@ -1,74 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
-
-// Get Microsoft Graph access token
-async function getGraphAccessToken(): Promise<string> {
-  const tenantId = Deno.env.get("MS365_TENANT_ID");
-  const clientId = Deno.env.get("MS365_CLIENT_ID");
-  const clientSecret = Deno.env.get("MS365_CLIENT_SECRET");
-
-  if (!tenantId || !clientId || !clientSecret) {
-    throw new Error("MS365 credentials not configured");
-  }
-
-  const tokenUrl = `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`;
-
-  const response = await fetch(tokenUrl, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      client_id: clientId,
-      client_secret: clientSecret,
-      scope: "https://graph.microsoft.com/.default",
-      grant_type: "client_credentials",
-    }),
-  });
-
-  const data = await response.json();
-  if (!response.ok) {
-    throw new Error(`Failed to get access token: ${data.error_description || data.error}`);
-  }
-
-  return data.access_token;
-}
-
-// Send email via Microsoft Graph API
-async function sendEmail(accessToken: string, to: string, subject: string, htmlContent: string): Promise<void> {
-  const senderEmail = "noreply@ygp.au";
-  const graphUrl = `https://graph.microsoft.com/v1.0/users/${senderEmail}/sendMail`;
-
-  const emailBody = {
-    message: {
-      subject,
-      body: {
-        contentType: "HTML",
-        content: htmlContent,
-      },
-      toRecipients: [{ emailAddress: { address: to } }],
-    },
-    saveToSentItems: false,
-  };
-
-  const response = await fetch(graphUrl, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(emailBody),
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.error?.message || "Failed to send email");
-  }
-}
+import { corsHeaders, FORM_BASE_URL } from "../_shared/config.ts";
+import { getGraphAccessToken, sendEmail } from "../_shared/ms-graph.ts";
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
@@ -213,9 +146,7 @@ async function processPatientReminder(
     throw new Error("No patient email available");
   }
 
-  // Send reminder email
-  const baseUrl = "https://jackdau.github.io/yourgp-care-plan-tool";
-  const formUrl = `${baseUrl}/patient-form.html?id=${patient.id}`;
+  const formUrl = `${FORM_BASE_URL}/patient-form.html?id=${patient.id}`;
   const reminderNumber = patient.reminder_count + 1;
 
   const subject = `Reminder: Your Health Goals Questionnaire - YourGP`;

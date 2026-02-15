@@ -1,11 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
-};
+import { corsHeaders, isValidUuid, errorResponse, jsonResponse } from "../_shared/config.ts";
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
@@ -23,10 +18,11 @@ Deno.serve(async (req: Request) => {
     const patientUuid = url.searchParams.get("id");
 
     if (!patientUuid) {
-      return new Response(
-        JSON.stringify({ error: "Patient ID is required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return errorResponse("Patient ID is required", 400);
+    }
+
+    if (!isValidUuid(patientUuid)) {
+      return errorResponse("Invalid patient UUID format", 400);
     }
 
     const { data, error } = await supabase
@@ -36,31 +32,21 @@ Deno.serve(async (req: Request) => {
       .single();
 
     if (error || !data) {
-      return new Response(
-        JSON.stringify({ error: "Patient not found" }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return errorResponse("Patient not found", 404);
     }
 
-    // Check if already submitted
     const { data: existingSubmission } = await supabase
       .from("submissions")
       .select("id")
       .eq("patient_uuid", patientUuid)
       .single();
 
-    return new Response(
-      JSON.stringify({
-        patientId: data.patient_id,
-        conditions: data.conditions,
-        questions: data.questions,
-        alreadySubmitted: !!existingSubmission
-      }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
-      }
-    );
+    return jsonResponse({
+      patientId: data.patient_id,
+      conditions: data.conditions,
+      questions: data.questions,
+      alreadySubmitted: !!existingSubmission
+    });
   }
 
   // POST - submit patient goals
@@ -68,13 +54,17 @@ Deno.serve(async (req: Request) => {
     const { patientUuid, goals } = await req.json();
 
     if (!patientUuid || !goals) {
-      return new Response(
-        JSON.stringify({ error: "Patient UUID and goals are required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return errorResponse("Patient UUID and goals are required", 400);
     }
 
-    // Verify patient exists and get site info
+    if (!isValidUuid(patientUuid)) {
+      return errorResponse("Invalid patient UUID format", 400);
+    }
+
+    if (!Array.isArray(goals)) {
+      return errorResponse("Goals must be an array", 400);
+    }
+
     const { data: patient, error: patientError } = await supabase
       .from("patients")
       .select("id, health_summary, conditions, site")
@@ -82,10 +72,7 @@ Deno.serve(async (req: Request) => {
       .single();
 
     if (patientError || !patient) {
-      return new Response(
-        JSON.stringify({ error: "Invalid patient link" }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return errorResponse("Invalid patient link", 404);
     }
 
     // Check for existing submission
@@ -183,23 +170,14 @@ Deno.serve(async (req: Request) => {
       hotdocUrl = "https://www.hotdoc.com.au/medical-centres/crace/yourgp-crace/doctors";
     }
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        carePlanGenerated,
-        hotdocUrl,
-      }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
-      }
-    );
+    return jsonResponse({
+      success: true,
+      carePlanGenerated,
+      hotdocUrl,
+    });
 
   } catch (error) {
     console.error("Error:", error);
-    return new Response(
-      JSON.stringify({ error: error.message || "Internal server error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return errorResponse(error.message || "Internal server error", 500);
   }
 });

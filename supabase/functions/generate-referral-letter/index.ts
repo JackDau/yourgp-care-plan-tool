@@ -1,12 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import Anthropic from "npm:@anthropic-ai/sdk@0.39.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
+import { corsHeaders, CLAUDE_MODEL, isValidUuid } from "../_shared/config.ts";
 
 const SUPPORTED_PROVIDERS = [
   "Physiotherapist",
@@ -31,6 +26,13 @@ Deno.serve(async (req: Request) => {
     if (!patientUuid || !providerType) {
       return new Response(
         JSON.stringify({ error: "Patient UUID and provider type are required" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (!isValidUuid(patientUuid)) {
+      return new Response(
+        JSON.stringify({ error: "Invalid patient UUID format" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -114,7 +116,7 @@ ${submission.care_plan_text.substring(0, 2000)}`;
     const client = new Anthropic();
 
     const message = await client.messages.create({
-      model: "claude-sonnet-4-20250514",
+      model: CLAUDE_MODEL,
       max_tokens: 2048,
       messages: [{ role: "user", content: userMessage }],
       system: systemPrompt,

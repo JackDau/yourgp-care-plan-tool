@@ -1,11 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
+import { corsHeaders, isValidUuid, errorResponse, jsonResponse } from "../_shared/config.ts";
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
@@ -13,13 +8,20 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
+    // Verify the request has a valid Supabase auth header
+    const authHeader = req.headers.get("authorization");
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return errorResponse("Authorization required", 401);
+    }
+
     const { patientUuid } = await req.json();
 
     if (!patientUuid) {
-      return new Response(
-        JSON.stringify({ error: "Patient UUID is required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return errorResponse("Patient UUID is required", 400);
+    }
+
+    if (!isValidUuid(patientUuid)) {
+      return errorResponse("Invalid patient UUID format", 400);
     }
 
     // Create Supabase client
@@ -42,25 +44,13 @@ Deno.serve(async (req: Request) => {
 
     if (error) {
       console.error("Delete error:", error);
-      return new Response(
-        JSON.stringify({ error: "Failed to delete patient" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return errorResponse("Failed to delete patient", 500);
     }
 
-    return new Response(
-      JSON.stringify({ success: true }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
-      }
-    );
+    return jsonResponse({ success: true });
 
   } catch (error) {
     console.error("Error:", error);
-    return new Response(
-      JSON.stringify({ error: error.message || "Internal server error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return errorResponse(error.message || "Internal server error", 500);
   }
 });

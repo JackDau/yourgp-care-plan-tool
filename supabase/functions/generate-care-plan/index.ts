@@ -1,59 +1,8 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import Anthropic from "npm:@anthropic-ai/sdk@0.39.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
-
-// Condition detection keywords
-const conditionKeywords: Record<string, string[]> = {
-  diabetes: [
-    "diabetes", "diabetic", "t2dm", "type 2 diabetes", "hba1c", "blood sugar",
-    "glucose", "metformin", "insulin", "sglt2", "glp-1", "hyperglycaemia"
-  ],
-  copd: [
-    "copd", "chronic obstructive", "emphysema", "chronic bronchitis",
-    "fev1", "spirometry", "bronchodilator", "inhaler", "breathless"
-  ],
-  cvd: [
-    "cardiovascular", "heart disease", "coronary", "heart attack", "myocardial infarction",
-    "angina", "stroke", "tia", "atrial fibrillation", "af", "heart failure",
-    "hypertension", "high blood pressure", "statin", "aspirin"
-  ],
-  mentalHealth: [
-    "depression", "anxiety", "mental health", "phq", "gad", "k10",
-    "antidepressant", "ssri", "snri", "suicidal", "mood disorder",
-    "panic", "ptsd", "bipolar"
-  ],
-  ckd: [
-    "chronic kidney", "ckd", "renal", "egfr", "kidney disease",
-    "albuminuria", "proteinuria", "nephropathy", "dialysis", "creatinine"
-  ],
-  osteoarthritis: [
-    "osteoarthritis", "arthritis", "joint pain", "knee pain", "hip pain",
-    "degenerative joint", "oa", "joint replacement", "arthroplasty"
-  ]
-};
-
-// Detect conditions from health summary
-function detectConditions(healthSummary: string): string[] {
-  const summary = healthSummary.toLowerCase();
-  const detectedConditions: string[] = [];
-
-  for (const [condition, keywords] of Object.entries(conditionKeywords)) {
-    for (const keyword of keywords) {
-      if (summary.includes(keyword)) {
-        detectedConditions.push(condition);
-        break;
-      }
-    }
-  }
-
-  return detectedConditions;
-}
+import { corsHeaders, CLAUDE_MODEL, isValidUuid } from "../_shared/config.ts";
+import { detectConditions } from "../_shared/conditions.ts";
 
 // Build system prompt based on detected conditions
 function buildSystemPrompt(conditions: string[]): string {
@@ -240,11 +189,24 @@ Deno.serve(async (req: Request) => {
   try {
     const { healthSummary, patientUuid } = await req.json();
 
+    if (patientUuid && !isValidUuid(patientUuid)) {
+      return new Response(
+        JSON.stringify({ error: "Invalid patient UUID format" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (healthSummary && typeof healthSummary === "string" && healthSummary.length > 50000) {
+      return new Response(
+        JSON.stringify({ error: "Health summary exceeds maximum length of 50000 characters" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     let patientGoals: any[] = [];
     let patientHealthSummary = healthSummary;
     let patientConditions: string[] = [];
 
-    // If patientUuid provided, fetch patient data and goals from database
     if (patientUuid) {
       const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
       const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -334,7 +296,7 @@ Generate a complete, structured care plan following the format specified. Includ
 
     // Generate care plan
     const message = await client.messages.create({
-      model: "claude-sonnet-4-20250514",
+      model: CLAUDE_MODEL,
       max_tokens: 4096,
       messages: [
         {

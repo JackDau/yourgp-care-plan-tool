@@ -1,11 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
+import { corsHeaders, FORM_BASE_URL, errorResponse, jsonResponse } from "../_shared/config.ts";
 
 // Parse GP name from health summary
 // Matches "Doctor Name: John Deery" from Best Practice export format
@@ -52,10 +47,7 @@ Deno.serve(async (req: Request) => {
     const { patientId, healthSummary, conditions, questions, patientEmail, gpName, site } = await req.json();
 
     if (!patientId) {
-      return new Response(
-        JSON.stringify({ error: "Patient ID is required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return errorResponse("Patient ID is required", 400);
     }
 
     // Create Supabase client
@@ -86,10 +78,7 @@ Deno.serve(async (req: Request) => {
 
     if (error) {
       console.error("Database error:", error);
-      return new Response(
-        JSON.stringify({ error: "Failed to save patient record" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return errorResponse("Failed to save patient record", 500);
     }
 
     // Schedule first reminder job (24 hours from now)
@@ -111,29 +100,18 @@ Deno.serve(async (req: Request) => {
       // Non-fatal - patient record was still saved
     }
 
-    // Generate form URL
-    const baseUrl = "https://jackdau.github.io/yourgp-care-plan-tool";
-    const formUrl = `${baseUrl}/patient-form.html?id=${data.id}`;
+    const formUrl = `${FORM_BASE_URL}/patient-form.html?id=${data.id}`;
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        patientUuid: data.id,
-        formUrl,
-        gpName: detectedGpName,
-        site: detectedSite
-      }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
-      }
-    );
+    return jsonResponse({
+      success: true,
+      patientUuid: data.id,
+      formUrl,
+      gpName: detectedGpName,
+      site: detectedSite
+    });
 
   } catch (error) {
     console.error("Error:", error);
-    return new Response(
-      JSON.stringify({ error: error.message || "Internal server error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return errorResponse(error.message || "Internal server error", 500);
   }
 });

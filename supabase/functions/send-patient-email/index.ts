@@ -1,41 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
-
-// Get Microsoft Graph access token using client credentials flow
-async function getGraphAccessToken(): Promise<string> {
-  const tenantId = Deno.env.get("MS365_TENANT_ID");
-  const clientId = Deno.env.get("MS365_CLIENT_ID");
-  const clientSecret = Deno.env.get("MS365_CLIENT_SECRET");
-
-  if (!tenantId || !clientId || !clientSecret) {
-    throw new Error("MS365 credentials not configured. Please set MS365_TENANT_ID, MS365_CLIENT_ID, and MS365_CLIENT_SECRET.");
-  }
-
-  const tokenUrl = `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`;
-
-  const response = await fetch(tokenUrl, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      client_id: clientId,
-      client_secret: clientSecret,
-      scope: "https://graph.microsoft.com/.default",
-      grant_type: "client_credentials"
-    })
-  });
-
-  const data = await response.json();
-  if (!response.ok) {
-    throw new Error(`Failed to get access token: ${data.error_description || data.error}`);
-  }
-
-  return data.access_token;
-}
+import { corsHeaders, SENDER_EMAIL } from "../_shared/config.ts";
+import { getGraphAccessToken } from "../_shared/ms-graph.ts";
 
 // Email templates
 function getEmailContent(template: string, params: Record<string, string>): { subject: string; html: string } {
@@ -126,9 +91,7 @@ Deno.serve(async (req: Request) => {
     // Get access token
     const accessToken = await getGraphAccessToken();
 
-    // Send email via Microsoft Graph API
-    const senderEmail = "noreply@ygp.au";
-    const graphUrl = `https://graph.microsoft.com/v1.0/users/${senderEmail}/sendMail`;
+    const graphUrl = `https://graph.microsoft.com/v1.0/users/${SENDER_EMAIL}/sendMail`;
 
     const emailBody = {
       message: {

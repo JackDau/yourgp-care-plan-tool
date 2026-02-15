@@ -1,12 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import Anthropic from "npm:@anthropic-ai/sdk@0.39.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
+import { corsHeaders, CLAUDE_MODEL, isValidUuid } from "../_shared/config.ts";
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
@@ -19,6 +14,13 @@ Deno.serve(async (req: Request) => {
     if (!reviewUuid) {
       return new Response(
         JSON.stringify({ error: "Review UUID is required" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (!isValidUuid(reviewUuid)) {
+      return new Response(
+        JSON.stringify({ error: "Invalid review UUID format" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -98,7 +100,7 @@ Deno.serve(async (req: Request) => {
     // Generate review summary using Claude
     const client = new Anthropic();
     const message = await client.messages.create({
-      model: "claude-sonnet-4-20250514",
+      model: CLAUDE_MODEL,
       max_tokens: 2048,
       system: `You are a clinical documentation assistant for Australian general practice. Generate a concise care plan review summary for a GP to use during a quarterly telehealth review consultation.
 

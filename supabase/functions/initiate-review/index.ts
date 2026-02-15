@@ -1,43 +1,8 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import Anthropic from "npm:@anthropic-ai/sdk@0.39.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
-
-// Get Microsoft Graph access token using client credentials flow
-async function getGraphAccessToken(): Promise<string> {
-  const tenantId = Deno.env.get("MS365_TENANT_ID");
-  const clientId = Deno.env.get("MS365_CLIENT_ID");
-  const clientSecret = Deno.env.get("MS365_CLIENT_SECRET");
-
-  if (!tenantId || !clientId || !clientSecret) {
-    throw new Error("MS365 credentials not configured.");
-  }
-
-  const tokenUrl = `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`;
-
-  const response = await fetch(tokenUrl, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      client_id: clientId,
-      client_secret: clientSecret,
-      scope: "https://graph.microsoft.com/.default",
-      grant_type: "client_credentials"
-    })
-  });
-
-  const data = await response.json();
-  if (!response.ok) {
-    throw new Error(`Failed to get access token: ${data.error_description || data.error}`);
-  }
-
-  return data.access_token;
-}
+import { corsHeaders, CLAUDE_MODEL, FORM_BASE_URL, SENDER_EMAIL, isValidUuid } from "../_shared/config.ts";
+import { getGraphAccessToken } from "../_shared/ms-graph.ts";
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
@@ -50,6 +15,13 @@ Deno.serve(async (req: Request) => {
     if (!patientUuid) {
       return new Response(
         JSON.stringify({ error: "Patient UUID is required" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (!isValidUuid(patientUuid)) {
+      return new Response(
+        JSON.stringify({ error: "Invalid patient UUID format" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -116,7 +88,7 @@ Deno.serve(async (req: Request) => {
     // Call Claude to generate progress questions
     const client = new Anthropic();
     const message = await client.messages.create({
-      model: "claude-sonnet-4-20250514",
+      model: CLAUDE_MODEL,
       max_tokens: 1024,
       system: `You are a friendly health care assistant for YourGP, an Australian general practice.
 
@@ -170,17 +142,13 @@ Return ONLY the JSON array, no markdown formatting or code blocks.`,
       throw reviewError;
     }
 
-    // Build review form URL
-    const formBaseUrl = "https://jackdau.github.io/yourgp-care-plan-tool/patient-form.html";
-    const reviewFormUrl = `${formBaseUrl}?review=${review.id}`;
+    const reviewFormUrl = `${FORM_BASE_URL}/patient-form.html?review=${review.id}`;
 
     // Build goals summary for email
     const goalsList = goalSummaries.map(g => `<li style="margin-bottom: 8px;">${g.replace(/^- /, "").replace(/\n  /g, "<br>")}</li>`).join("");
 
-    // Send email via MS Graph API
     const accessToken = await getGraphAccessToken();
-    const senderEmail = "noreply@ygp.au";
-    const graphUrl = `https://graph.microsoft.com/v1.0/users/${senderEmail}/sendMail`;
+    const graphUrl = `https://graph.microsoft.com/v1.0/users/${SENDER_EMAIL}/sendMail`;
 
     const emailBody = {
       message: {
@@ -214,19 +182,20 @@ Return ONLY the JSON array, no markdown formatting or code blocks.`,
       body: JSON.stringify(emailBody)
     });
 
+    let emailSent = false;
     if (!emailResponse.ok) {
       const errorData = await emailResponse.json();
       console.error("Email send error:", errorData);
+    } else {
+      emailSent = true;
+      await supabase
+        .from("reviews")
+        .update({
+          review_email_sent: true,
+          review_email_sent_at: new Date().toISOString(),
+        })
+        .eq("id", review.id);
     }
-
-    // Update review email status
-    await supabase
-      .from("reviews")
-      .update({
-        review_email_sent: true,
-        review_email_sent_at: new Date().toISOString(),
-      })
-      .eq("id", review.id);
 
     return new Response(
       JSON.stringify({
@@ -234,6 +203,7 @@ Return ONLY the JSON array, no markdown formatting or code blocks.`,
         reviewId: review.id,
         reviewNumber,
         questionsGenerated: reviewQuestions.length,
+        emailSent,
       }),
       {
         status: 200,

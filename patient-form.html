@@ -264,6 +264,42 @@
             margin-top: 20px;
         }
 
+        .progress-bar {
+            background: #f0f0f5;
+            border-radius: 8px;
+            height: 8px;
+            margin-bottom: 24px;
+            overflow: hidden;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 8px;
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+
+        .progress-text {
+            text-align: center;
+            color: #718096;
+            font-size: 13px;
+            margin-bottom: 8px;
+        }
+
+        .draft-notice {
+            text-align: center;
+            color: #22c55e;
+            font-size: 12px;
+            margin-bottom: 16px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .draft-notice.visible {
+            opacity: 1;
+        }
+
         @media (max-width: 600px) {
             .card {
                 padding: 24px 16px;
@@ -317,6 +353,15 @@
                         <p style="color: #166534; line-height: 1.8;">Below you'll see the health goals you set last time, along with a question about how you've been going. Let us know how you're tracking - there are no right or wrong answers. Your GP will use this to prepare for your upcoming review.</p>
                     </div>
                 </div>
+
+                <div id="progressContainer" style="display: none;">
+                    <div class="progress-text" id="progressText">Question 0 of 0 answered</div>
+                    <div class="progress-bar">
+                        <div class="progress-bar-fill" id="progressFill"></div>
+                    </div>
+                </div>
+
+                <div class="draft-notice" id="draftNotice">Draft saved</div>
 
                 <div id="error" class="error-message"></div>
 
@@ -402,6 +447,7 @@
 
                 questionsData = data.questions;
                 renderQuestions(data.questions);
+                setupDraftAndProgress();
 
                 document.getElementById('loading').classList.remove('active');
                 document.getElementById('formContent').style.display = 'block';
@@ -457,6 +503,7 @@
 
                 // Update submit button
                 document.getElementById('submitBtn').textContent = 'Submit My Progress Update';
+                setupDraftAndProgress();
 
                 document.getElementById('loading').classList.remove('active');
                 document.getElementById('formContent').style.display = 'block';
@@ -610,6 +657,7 @@
                     throw new Error(data.error || 'Failed to submit goals');
                 }
 
+                clearDraft();
                 document.getElementById('formContent').style.display = 'none';
                 document.getElementById('pageHeader').style.display = 'none';
                 document.getElementById('successMessage').classList.add('active');
@@ -675,6 +723,7 @@
                 }
 
                 // Show review-specific success message
+                clearDraft();
                 document.getElementById('formContent').style.display = 'none';
                 document.getElementById('pageHeader').style.display = 'none';
                 document.getElementById('successText').textContent = 'Your progress update has been submitted successfully.';
@@ -688,6 +737,94 @@
                 submitBtn.disabled = false;
                 submitBtn.textContent = 'Submit My Progress Update';
             }
+        }
+
+        // === PROGRESS TRACKING ===
+        function updateProgress() {
+            const textareas = document.querySelectorAll('#questionsContainer textarea');
+            if (textareas.length === 0) return;
+
+            const total = textareas.length;
+            const answered = Array.from(textareas).filter(t => t.value.trim().length > 0).length;
+            const pct = Math.round((answered / total) * 100);
+
+            document.getElementById('progressText').textContent = `${answered} of ${total} question${total !== 1 ? 's' : ''} answered`;
+            document.getElementById('progressFill').style.width = pct + '%';
+            document.getElementById('progressContainer').style.display = 'block';
+        }
+
+        // === DRAFT SAVING ===
+        function getDraftKey() {
+            if (isReviewMode && reviewUuid) return 'careplan_draft_review_' + reviewUuid;
+            if (patientUuid) return 'careplan_draft_goals_' + patientUuid;
+            return null;
+        }
+
+        let draftTimeout = null;
+        function saveDraft() {
+            const key = getDraftKey();
+            if (!key) return;
+
+            const textareas = document.querySelectorAll('#questionsContainer textarea');
+            const drafts = {};
+            textareas.forEach(t => {
+                if (t.value.trim()) drafts[t.id] = t.value;
+            });
+
+            if (Object.keys(drafts).length > 0) {
+                localStorage.setItem(key, JSON.stringify(drafts));
+            } else {
+                localStorage.removeItem(key);
+            }
+
+            // Flash "Draft saved" notice
+            const notice = document.getElementById('draftNotice');
+            notice.classList.add('visible');
+            clearTimeout(draftTimeout);
+            draftTimeout = setTimeout(() => notice.classList.remove('visible'), 2000);
+        }
+
+        function restoreDraft() {
+            const key = getDraftKey();
+            if (!key) return;
+
+            try {
+                const saved = JSON.parse(localStorage.getItem(key));
+                if (!saved) return;
+
+                let restored = false;
+                for (const [id, value] of Object.entries(saved)) {
+                    const el = document.getElementById(id);
+                    if (el && !el.value) {
+                        el.value = value;
+                        restored = true;
+                    }
+                }
+                if (restored) {
+                    const notice = document.getElementById('draftNotice');
+                    notice.textContent = 'Previous draft restored';
+                    notice.classList.add('visible');
+                    setTimeout(() => {
+                        notice.classList.remove('visible');
+                        notice.textContent = 'Draft saved';
+                    }, 3000);
+                }
+            } catch (_) { /* ignore corrupt data */ }
+        }
+
+        function clearDraft() {
+            const key = getDraftKey();
+            if (key) localStorage.removeItem(key);
+        }
+
+        function setupDraftAndProgress() {
+            restoreDraft();
+            updateProgress();
+
+            document.getElementById('questionsContainer').addEventListener('input', () => {
+                updateProgress();
+                saveDraft();
+            });
         }
 
         document.getElementById('goalsForm').addEventListener('submit', handleSubmit);

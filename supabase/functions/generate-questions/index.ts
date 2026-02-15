@@ -1,41 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import Anthropic from "npm:@anthropic-ai/sdk@0.39.0";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
-
-// Condition detection keywords (same as care plan tool)
-const conditionKeywords: Record<string, string[]> = {
-  diabetes: [
-    "diabetes", "diabetic", "t2dm", "type 2 diabetes", "hba1c", "blood sugar",
-    "glucose", "metformin", "insulin", "sglt2", "glp-1", "hyperglycaemia"
-  ],
-  copd: [
-    "copd", "chronic obstructive", "emphysema", "chronic bronchitis",
-    "fev1", "spirometry", "bronchodilator", "inhaler", "breathless"
-  ],
-  cvd: [
-    "cardiovascular", "heart disease", "coronary", "heart attack", "myocardial infarction",
-    "angina", "stroke", "tia", "atrial fibrillation", "af", "heart failure",
-    "hypertension", "high blood pressure", "statin", "aspirin"
-  ],
-  mentalHealth: [
-    "depression", "anxiety", "mental health", "phq", "gad", "k10",
-    "antidepressant", "ssri", "snri", "suicidal", "mood disorder",
-    "panic", "ptsd", "bipolar"
-  ],
-  ckd: [
-    "chronic kidney", "ckd", "renal", "egfr", "kidney disease",
-    "albuminuria", "proteinuria", "nephropathy", "dialysis", "creatinine"
-  ],
-  osteoarthritis: [
-    "osteoarthritis", "arthritis", "joint pain", "knee pain", "hip pain",
-    "degenerative joint", "oa", "joint replacement", "arthroplasty"
-  ]
-};
+import { corsHeaders } from "../_shared/config.ts";
+import { detectConditions, getConditionDisplayName } from "../_shared/conditions.ts";
 
 // Condition-specific SMART goal questions with theme tags for deduplication
 // When a patient has multiple conditions, each theme (exercise, diet, smoking, etc.)
@@ -82,34 +48,6 @@ const generalQuestions = [
   "What might get in the way, and how could you overcome it?"
 ];
 
-function detectConditions(healthSummary: string): string[] {
-  const summary = healthSummary.toLowerCase();
-  const detectedConditions: string[] = [];
-
-  for (const [condition, keywords] of Object.entries(conditionKeywords)) {
-    for (const keyword of keywords) {
-      if (summary.includes(keyword)) {
-        detectedConditions.push(condition);
-        break;
-      }
-    }
-  }
-
-  return detectedConditions;
-}
-
-function getConditionDisplayName(condition: string): string {
-  const names: Record<string, string> = {
-    diabetes: "Diabetes",
-    copd: "COPD (Lung Condition)",
-    cvd: "Heart Health",
-    mentalHealth: "Mental Wellbeing",
-    ckd: "Kidney Health",
-    osteoarthritis: "Joint Health (Arthritis)"
-  };
-  return names[condition] || condition;
-}
-
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -121,6 +59,13 @@ Deno.serve(async (req: Request) => {
     if (!healthSummary || typeof healthSummary !== "string") {
       return new Response(
         JSON.stringify({ error: "Health summary is required" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (healthSummary.length > 50000) {
+      return new Response(
+        JSON.stringify({ error: "Health summary exceeds maximum length of 50000 characters" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
