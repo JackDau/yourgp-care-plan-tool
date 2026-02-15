@@ -30,6 +30,7 @@ Deno.serve(async (req: Request) => {
         created_at,
         gp_name,
         site,
+        questions,
         reminder_count,
         last_reminder_sent_at,
         submissions (
@@ -111,6 +112,7 @@ Deno.serve(async (req: Request) => {
         createdAt: patient.created_at,
         gpName: patient.gp_name,
         site: patient.site,
+        questions: patient.questions,
         reminderCount: patient.reminder_count,
         lastReminderSentAt: patient.last_reminder_sent_at,
         referralLetters: referralsByPatient[patient.id] || [],

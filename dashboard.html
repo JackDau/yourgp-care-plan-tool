@@ -704,6 +704,20 @@
         </div>
     </div>
 
+    <!-- Questions Modal -->
+    <div id="questionsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Generated Questions</h2>
+                <button class="modal-close" onclick="closeModal('questionsModal')">&times;</button>
+            </div>
+            <div id="questionsContent" class="care-plan-output"></div>
+            <div class="modal-actions">
+                <button class="btn-small btn-view" onclick="closeModal('questionsModal')">Close</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Green Tick Overlay -->
     <div id="greenTickOverlay" class="green-tick-overlay">
         <div class="green-tick-container">
@@ -928,6 +942,7 @@
                     `;
                 } else if (type === 'ready') {
                     actions = `
+                        <button class="btn-small btn-view" onclick="viewQuestions('${patient.uuid}')">View Questions</button>
                         <button class="btn-small btn-view" onclick="toggleGoals('${patient.uuid}')">View Goals</button>
                         <button class="btn-small btn-generate" onclick="generateCarePlan('${patient.uuid}')">Generate Care Plan</button>
                         <button class="btn-small btn-delete" onclick="deletePatient('${patient.uuid}')">Delete</button>
@@ -965,6 +980,7 @@
                         ? `<span style="color: #f59e0b; font-size: 12px;">${patient.reminderCount} reminder(s) sent</span>`
                         : '';
                     actions = `
+                        <button class="btn-small btn-view" onclick="viewQuestions('${patient.uuid}')">View Questions</button>
                         <span style="color: #f59e0b; font-size: 13px;">Waiting for patient...</span>
                         ${reminderInfo}
                         <button class="btn-small btn-delete" onclick="deletePatient('${patient.uuid}')">Delete</button>
@@ -1070,6 +1086,25 @@
                 btn.disabled = false;
                 btn.textContent = 'Generate Care Plan';
             }
+        }
+
+        function viewQuestions(patientUuid) {
+            const allPatients = [...(allData.awaiting || []), ...(allData.ready || []), ...(allData.completed || []), ...(allData.closed || [])];
+            const patient = allPatients.find(p => p.uuid === patientUuid);
+            if (!patient?.questions || patient.questions.length === 0) {
+                showToast('No questions available for this patient.', 'error');
+                return;
+            }
+            const container = document.getElementById('questionsContent');
+            container.innerHTML = patient.questions.map(section => `
+                <div style="margin-bottom: 20px;">
+                    <h4 style="color: #667eea; margin-bottom: 8px; font-size: 15px;">${section.category}</h4>
+                    <ol style="margin: 0; padding-left: 20px; color: #4a5568; line-height: 1.8;">
+                        ${section.questions.map(q => `<li style="margin-bottom: 6px;">${q}</li>`).join('')}
+                    </ol>
+                </div>
+            `).join('');
+            document.getElementById('questionsModal').classList.add('active');
         }
 
         function viewCarePlan(patientUuid) {
